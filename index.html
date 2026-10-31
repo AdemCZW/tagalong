@@ -393,6 +393,9 @@ body{color:var(--text)}
 .sh{padding:22px 16px 10px;align-items:flex-end}
 .sh h2{font-family:var(--display);font-weight:900;font-size:20px;letter-spacing:-.02em;color:var(--text);display:inline-block;padding:0 2px 22px;margin:0 0 -4px -2px;background:none no-repeat left bottom/100% 26px}
 .sh .more{font-size:13px;font-weight:600;color:var(--text2);padding-bottom:7px}
+/* section titles without the ink underline: no room reserved for it */
+.sh h2[data-u="0"]{padding-bottom:0;margin-bottom:0}
+.sh:has(h2[data-u="0"]) .more{padding-bottom:2px}
 /* eyebrow labels: one style everywhere */
 .eb,.eb2,.cc .eb,.hero .eb,.pvw .eb{font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--accent-ink)}
 .stage .eb,.cc.dk .eb,.hero .eb,.pvw .eb,.pass .top em{color:var(--accent-on-g)}
@@ -1752,8 +1755,9 @@ function inkUnder(w){
   }
   return UL[w]=cv.toDataURL('image/png');
 }
+/* only the first section title of a page gets the ink underline; the rest stay plain */
 function paintUnders(root){
-  (root||document).querySelectorAll('.sh h2:not([data-u])').forEach(h=>{const w=h.offsetWidth;if(!w)return;const u=inkUnder(w);if(!u)return;h.dataset.u='1';h.style.backgroundImage=`url(${u})`;});
+  (root||document).querySelectorAll('.sh h2').forEach((h,i)=>{if(h.dataset.u)return;if(i){h.dataset.u='0';return;}const w=h.offsetWidth;if(!w)return;const u=inkUnder(w);if(!u)return;h.dataset.u='1';h.style.backgroundImage=`url(${u})`;});
 }
 
 /* ---------- wet paint: the component itself is paint, its lower edge sags and runs in its own colour ----------
