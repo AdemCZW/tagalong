@@ -1037,6 +1037,23 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .stbar.cal-in{margin-top:0}
 .cal-frm{margin-top:10px}
 
+/* ===== feat/maplibre ===== */
+/* 附近: real map (MapLibre) in place of the radar canvas */
+.ml-wrap{position:relative;width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#0e0e10}
+.ml-wrap>.ml-map{position:absolute;inset:0;width:100%;height:100%}
+.ml-attr{position:absolute;left:8px;bottom:6px;font-size:9.5px;color:rgba(255,255,255,.5);pointer-events:auto}
+.ml-attr a{color:inherit;text-decoration:none}
+.ml-far .ml-t{display:none}
+.ml-pin{display:flex;align-items:center;gap:4px;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ml-ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ml-ic img{width:34px;height:34px;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.ml-pin.in .ml-ic{box-shadow:0 0 0 2.5px #FF5A36}
+.ml-t{font:700 12px/1 -apple-system,"PingFang TC",sans-serif;color:#fff;background:rgba(16,16,18,.85);padding:5px 8px;border-radius:99px;white-space:nowrap}
+.ml-pin.in .ml-t{background:#FF5A36}
+.ml-me{width:14px;height:14px;border-radius:50%;background:#FF5A36;border:2.5px solid #fff;box-shadow:0 0 0 6px rgba(255,90,54,.25),0 0 12px rgba(255,90,54,.8)}
+.ml-re{position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(16,16,18,.85);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.ml-re svg{width:18px;height:18px}
+
 /* ===== feat/onboard ===== */
 /* onboard: interest picker sheet,「為你推薦」rows, Me interest row */
 .ob-lead{margin:2px 0 0}
@@ -3056,6 +3073,89 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   });
 
   window.TG_CAL={clashes,hard,entries,openCal,state:cs,dkey};
+})();
+
+/* ===== feat/maplibre ===== */
+/* 附近: real map with MapLibre GL + CARTO Dark Matter tiles (prefix ml).
+   Loads the library from unpkg the first time the 附近 tab opens. When it can't (jsdom, no WebGL, offline)
+   the core radar stays, so nothing else depends on this module. */
+(()=>{
+  const LIB='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl';
+  const STYLE='https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+  const ME_LL=[121.5354,25.0330];   /* demo "you": 大安森林公園 north gate */
+  /* real spots for the seed events; anything else (e.g. newly posted) is placed from km/ang around you */
+  const LL={1:[121.5076,25.0566],2:[121.5340,25.0146],3:[121.5697,25.0328],4:[121.5207,25.0546],5:[121.5249,25.0725],
+    6:[121.5452,25.0204],7:[121.5297,25.0330],8:[121.5178,25.0283],9:[121.5510,24.8650]};
+  const llOf=a=>LL[a.id]||(()=>{const th=a.ang*Math.PI/180,dy=Math.cos(th)*a.km/111,dx=Math.sin(th)*a.km/(111*Math.cos(ME_LL[1]*Math.PI/180));return [ME_LL[0]+dx,ME_LL[1]+dy];})();
+
+  const ok=()=>!/jsdom/i.test(navigator.userAgent)&&(()=>{try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'));}catch(e){return false;}})();
+  let lib=null,map=null,box=null,marks=[],failed=false;
+  function load(){
+    if(lib)return lib;
+    lib=new Promise((res,rej)=>{
+      const l=document.createElement('link');l.rel='stylesheet';l.href=LIB+'.css';document.head.appendChild(l);
+      const s=document.createElement('script');s.src=LIB+'.js';s.onload=()=>window.maplibregl?res():rej();s.onerror=rej;document.head.appendChild(s);
+    });
+    return lib;
+  }
+  /* street names in Chinese: prefer zh-Hant, then the local name (Taiwan's local name is already Chinese) */
+  function zhLabels(){
+    map.getStyle().layers.forEach(l=>{if(l.type==='symbol'&&l.layout&&l.layout['text-field'])
+      try{map.setLayoutProperty(l.id,'text-field',['coalesce',['get','name:zh-Hant'],['get','name:zh'],['get','name']]);}catch(e){}});
+  }
+  function pin(a){
+    const inn=joined.has(a.id)||a.mine,s=PGL.snaps&&PGL.snaps[a.cat],t=headline(a)[0].split(/[ ，,]/)[0].slice(0,6);
+    const el=document.createElement('button');el.className='ml-pin'+(inn?' in':'');el.type='button';el.setAttribute('aria-label',headline(a)[0]);
+    el.innerHTML=`<span class="ml-ic">${s?`<img src="${s}" alt="">`:''}</span><span class="ml-t">${esc(t)}</span>`;
+    el.addEventListener('click',e=>{e.stopPropagation();openDetail(a.id);});
+    return el;
+  }
+  function placePins(){
+    marks.forEach(m=>m.remove());
+    const L=vacts();
+    marks=L.map(a=>new maplibregl.Marker({element:pin(a),anchor:'left',offset:[-17,0]}).setLngLat(llOf(a)).addTo(map));
+    const me=document.createElement('div');me.className='ml-me';
+    marks.push(new maplibregl.Marker({element:me}).setLngLat(ME_LL).addTo(map));
+  }
+  /* straight-line km from you, from the real coordinates */
+  const kmTo=([x,y])=>{const r=Math.PI/180,dx=(x-ME_LL[0])*Math.cos(ME_LL[1]*r)*111.32,dy=(y-ME_LL[1])*110.57;return Math.hypot(dx,dy);};
+  /* frame you + everything within ~7 km; far ones (烏來) are a pan away */
+  function frame(anim){
+    const b=new maplibregl.LngLatBounds(ME_LL,ME_LL);
+    vacts().forEach(a=>{const p=llOf(a);if(kmTo(p)<=7)b.extend(p);});
+    map.fitBounds(b,{padding:{top:40,bottom:40,left:30,right:90},maxZoom:14,duration:anim?600:0});
+  }
+  function mount(){
+    const cv=$('#radar');if(!cv)return;
+    const host=document.createElement('div');host.className='ml-wrap';cv.replaceWith(host);
+    if(!box){
+      box=document.createElement('div');box.className='ml-map';
+      host.appendChild(box);
+      map=new maplibregl.Map({container:box,style:STYLE,center:ME_LL,zoom:12.6,attributionControl:false,dragRotate:false,pitchWithRotate:false,cooperativeGestures:false});
+      map.touchZoomRotate.disableRotation();
+      map.on('styledata',()=>{if(!map._mlZh){map._mlZh=1;zhLabels();}});
+      map.on('load',()=>frame(false));
+      /* names only once zoomed in enough to read them */
+      const zl=()=>box.classList.toggle('ml-far',map.getZoom()<12.2);map.on('zoom',zl);zl();
+      map.on('error',e=>console.warn('maplibre',e&&e.error&&e.error.message));
+    }else host.appendChild(box);
+    const re=document.createElement('button');re.type='button';re.className='ml-re';re.dataset.mlRe='';re.setAttribute('aria-label','回到我的位置');re.innerHTML=IC.pin||'◎';
+    host.appendChild(re);
+    host.insertAdjacentHTML('beforeend','<small class="ml-attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></small>');
+    placePins();
+    requestAnimationFrame(()=>map.resize());
+  }
+
+  const coreNear=renderNear;
+  renderNear=function(){
+    coreNear();
+    if(failed||!ok())return;
+    if(window.maplibregl){mount();return;}
+    load().then(()=>{if(st.tab==='near')mount();}).catch(()=>{failed=true;});
+  };
+  FX.click.push((b,d)=>{if(d.mlRe!==undefined){map&&frame(true);return true;}return false;});
+
+  window.TG_ML={llOf,kmTo,ME_LL,LL,ok,get map(){return map;}};
 })();
 
 /* ===== feat/onboard ===== */
