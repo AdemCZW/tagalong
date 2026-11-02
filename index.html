@@ -1747,18 +1747,9 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 #phone.pw .status{color:var(--pink);transition:color .25s}
 #phone.pw .status .bat{border-color:currentColor}#phone.pw .status .bat::after{background:currentColor}
 
-#phone.pw .tabs{background:var(--pbg)!important;border-top:2px solid var(--pink)!important;transition:background .25s}
-#phone.pw .tab{color:var(--pink);opacity:.8;border-left:0;font:700 14px/1 var(--f,"Noto Sans TC",sans-serif);letter-spacing:0;transition:color .25s}
-#phone.pw .tab[aria-current="page"]{opacity:1;font-weight:900}
-#phone.pw .tab[aria-current="page"]::before{display:none}
-#phone.pw .tab svg{display:none}
-#phone.pw .tab .bdg{background:var(--pink);color:var(--pbg)}
-#phone.pw .fab{bottom:0!important;height:calc(60px + var(--bot,0px))!important;padding-bottom:var(--bot,0px);background:var(--pink)!important;color:var(--pbg)!important;border-left:0!important;transition:background .25s,color .25s}
-#phone.pw .fab svg{display:none}
-#phone.pw .fab::after{font:900 14px/1 var(--f,"Noto Sans TC",sans-serif);letter-spacing:0}
 
 /* wall: each poster stops short of the bar so the next one's colour shows */
-.pwall{position:absolute;inset:0 0 calc(60px + var(--bot,0px));overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;background:var(--pbg,#000)}
+.pwall{position:absolute;inset:0 0 var(--bar-h);overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;background:var(--pbg,#000)}
 .pwall::-webkit-scrollbar{display:none}
 .pst{position:relative;height:calc(100% - 26px);scroll-snap-align:start;overflow:hidden;background:var(--b);color:var(--k)}
 .pst.end{height:100%}
@@ -1936,10 +1927,20 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .frm label,.frm .lb,#sh-create .frm .fr>label{font-size:13px;font-weight:700;text-transform:none}
 #sh-create label[for="crTitle"]::after,#sh-create label[for="crPlace"]::after{content:"必填";font-size:11px;font-weight:900;border-radius:4px}
 
-/* 我 is back in the bar: five keys in one row */
-#phone.pw .tabs{grid-template-columns:repeat(5,1fr)!important}
-#phone.pw .tabs .tab:nth-child(4){display:grid;grid-column:4}
-#phone.pw .fab{left:80%!important;width:20%!important}
+
+/* bottom bar: always black, whatever poster is above it; icon + English label, active key in the one yellow */
+#phone{--bar-h:calc(48px + max(8px,env(safe-area-inset-bottom,0px)))}
+#phone .tabs{height:var(--bar-h);padding:0 0 max(8px,env(safe-area-inset-bottom,0px));background:#0B0B0B!important;border-top:1px solid rgba(255,255,255,.16)!important;grid-template-columns:repeat(5,1fr)!important}
+#phone .tabs .tab:nth-child(4){display:grid;grid-column:4}
+#phone .tab{height:48px;display:grid;place-items:center;align-content:center;gap:2px;padding:0;border-left:0;background:none;color:#8E8E8E;font:600 12px/1 "Barlow Condensed","Noto Sans TC",sans-serif}
+#phone .tab[aria-current="page"]{color:#FFE500}
+#phone .tab[aria-current="page"]::before{display:none}
+#phone .tab svg{display:block;width:22px;height:24px;stroke-width:1.9}
+#phone .tab .bdg{position:absolute;left:calc(50% + 6px);top:3px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:#FFE500;color:#111;font:900 10px/15px "Noto Sans TC",sans-serif;text-align:center}
+#phone .fab{left:80%!important;width:20%!important;bottom:max(8px,env(safe-area-inset-bottom,0px))!important;height:48px!important;display:grid!important;place-items:center;align-content:center;gap:2px;padding:0;background:none!important;color:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+#phone .fab svg{display:block;width:24px!important;height:24px!important;padding:5px;border-radius:7px;background:#FFE500;color:#111;stroke-width:3}
+#phone .fab::after{content:"Create";font:600 12px/1 "Barlow Condensed","Noto Sans TC",sans-serif;color:#fff}
+#phone .fab::after{letter-spacing:0!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -5068,6 +5069,13 @@ function posterTint(el,a){const [bg,ink]=posterCol(a);el.style.setProperty('--b'
     return r;
   };
 })();
+
+/* bottom bar: icons with English names; screen readers keep the Chinese */
+function renderTabs(){
+  const u=unreadTotal(),en={home:'Explore',near:'Nearby',chat:'Chats',me:'Me'};
+  $('#tabs').style.setProperty('--ix',TABS.findIndex(t=>t[0]===st.tab));
+  $('#tabs').innerHTML=TABS.map(([k,n,ic])=>`<button class="tab" data-tab="${k}" aria-label="${n}" ${st.tab===k?'aria-current="page"':''}>${ic}${en[k]}${k==='chat'&&u?`<span class="bdg">${u}</span>`:''}</button>`).join('');
+}
 
 tgBoot();
 </script>
