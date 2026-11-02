@@ -1731,23 +1731,21 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 #s-home.pv-list .large.one .search{flex:1}
 
 /* chrome: same row on the wall and in 總覽, colours follow the poster on screen */
-.ptop{position:sticky;top:0;z-index:30;height:calc(var(--top,50px) + 44px);padding:var(--top,50px) calc(var(--gut,20px) + 46px) 0 var(--gut,20px);display:flex;align-items:center;gap:12px;color:var(--text);background:var(--bg)}
+.ptop{position:sticky;top:0;z-index:30;height:calc(var(--top,50px) + 44px);padding:var(--top,50px) var(--gut,20px) 0;display:flex;align-items:center;gap:12px;color:var(--text);background:var(--bg)}
 #s-home.pv-wall .ptop{position:absolute;left:0;right:0;background:none;color:var(--pink);transition:color .25s}
 .ptop .plogo{font:400 23px/1 Anton,sans-serif;letter-spacing:.01em;margin-right:auto}
 .ptop .seg{display:flex;gap:12px;margin:0;padding:0;background:none!important;border:0!important;box-shadow:none!important;width:auto;height:auto}
 .ptop .seg::before,.ptop .seg::after{display:none!important}
 .ptop .seg button{flex:none;width:auto;height:auto;padding:5px 0;background:none!important;border:0;border-bottom:2px solid transparent;border-radius:0;color:inherit!important;opacity:.8;font:700 14px/1.2 var(--f,"Noto Sans TC",sans-serif);letter-spacing:0}
 .ptop .seg button[aria-selected="true"]{opacity:1;border-bottom-color:currentColor}
-.pview{position:relative;flex:none;width:30px;height:30px;display:grid;place-items:center;color:inherit;background:none;border:0;padding:0}
-.pview svg{width:20px;height:20px;fill:currentColor}
-.pview i{position:absolute;right:-3px;top:-1px;min-width:15px;height:15px;border-radius:8px;background:currentColor;font:900 10px/15px "Noto Sans TC",sans-serif;text-align:center;font-style:normal}
-.pview i b{color:var(--pbg,var(--bg));font-weight:900}
+.pvs{flex:none;display:flex;padding:2px;border:2px solid currentColor;border-radius:11px}
+.pvs button{position:relative;width:34px;height:28px;display:grid;place-items:center;padding:0;border:0;border-radius:7px;background:none;color:inherit}
+.pvs button svg{width:17px;height:17px;fill:currentColor}
+.pvs button.on{background:var(--pink,#fff);color:var(--pbg,#0B0B0B)}
+.pvs button i{position:absolute;right:-5px;top:-7px;min-width:16px;height:16px;border-radius:8px;background:#FFE500;color:#111;font:900 10px/16px "Noto Sans TC",sans-serif;font-style:normal;text-align:center}
 
 #phone.pw .status{color:var(--pink);transition:color .25s}
 #phone.pw .status .bat{border-color:currentColor}#phone.pw .status .bat::after{background:currentColor}
-#phone.pw .mefloat{box-shadow:none}
-#phone.pw .mefloat svg rect:first-child{fill:var(--pink);stroke:none;transition:fill .25s}
-#phone.pw .mefloat svg text{fill:var(--pbg);transition:fill .25s}
 
 #phone.pw .tabs{background:var(--pbg)!important;border-top:2px solid var(--pink)!important;transition:background .25s}
 #phone.pw .tab{color:var(--pink);opacity:.8;border-left:0;font:700 14px/1 var(--f,"Noto Sans TC",sans-serif);letter-spacing:0;transition:color .25s}
@@ -1937,6 +1935,11 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .glbl i::after{content:none}
 .frm label,.frm .lb,#sh-create .frm .fr>label{font-size:13px;font-weight:700;text-transform:none}
 #sh-create label[for="crTitle"]::after,#sh-create label[for="crPlace"]::after{content:"必填";font-size:11px;font-weight:900;border-radius:4px}
+
+/* 我 is back in the bar: five keys in one row */
+#phone.pw .tabs{grid-template-columns:repeat(5,1fr)!important}
+#phone.pw .tabs .tab:nth-child(4){display:grid;grid-column:4}
+#phone.pw .fab{left:80%!important;width:20%!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -4865,13 +4868,6 @@ function drawRadar(){
   blips=pts.map(p=>({id:p.a.id,px:p.px,py:p.py}));
 }
 
-/* 我 floats top-right on every main screen instead of sitting in the bottom bar (the hidden tab stays for state + tests) */
-(function(){
-  document.getElementById('phone').insertAdjacentHTML('beforeend',`<button class="mefloat" data-tab="me" aria-label="我的">${chip('me',36)}</button>`);
-  const sync=()=>{const b=document.querySelector('.mefloat');if(b)b.classList.toggle('on',st.tab==='me');};
-  const base=switchTab;switchTab=function(){base.apply(this,arguments);sync();};
-})();
-
 /* ===== theme/poster ===== */
 /* ===== theme/poster.js — 海報牆: replaces the home screen, opens detail on the same poster =====
    Loaded after theme/stamp.js. Delete this file and theme/poster.css, re-run assemble.py to get the old home back. */
@@ -4953,7 +4949,10 @@ renderHome=function(){
   let top=$('#s-home .ptop');if(!top){sc.insertAdjacentHTML('afterbegin','<div class="ptop"></div>');top=$('#s-home .ptop');}
   top.innerHTML=`<span class="plogo">Tagalong</span>
     <div class="seg" role="tablist" style="--ix:${['all','today','weekend'].indexOf(st.seg)}">${[['all','全部'],['today','今天'],['weekend','週末']].map(([k,n])=>`<button role="tab" data-seg="${k}" aria-selected="${st.seg===k}">${n}</button>`).join('')}</div>
-    <button class="pview" data-pview="${posterView==='wall'?'list':'wall'}" aria-label="${posterView==='wall'?'總覽和篩選':'回到海報'}"><svg viewBox="0 0 20 20" aria-hidden="true">${posterView==='wall'?'<rect x="1" y="1" width="8" height="8" rx="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5"/>':'<rect x="4" y="1" width="12" height="18" rx="2"/>'}</svg>${fn&&posterView==='wall'?`<i><b>${fn}</b></i>`:''}</button>`;
+    <div class="pvs" role="group" aria-label="切換檢視">
+      <button class="${posterView==='wall'?'on':''}" data-pview="wall" aria-pressed="${posterView==='wall'}" aria-label="大海報" title="大海報"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="1" width="12" height="18" rx="2"/></svg></button>
+      <button class="${posterView==='list'?'on':''}" data-pview="list" aria-pressed="${posterView==='list'}" aria-label="小格子、篩選" title="小格子、篩選"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5"/></svg>${fn&&posterView==='wall'?`<i>${fn}</i>`:''}</button>
+    </div>`;
   sc.classList.toggle('pv-wall',posterView==='wall');sc.classList.toggle('pv-list',posterView==='list');
   $('#homeBody').innerHTML=`
     <div class="pwall">${wall.length?wall.map((a,i)=>posterHTML(a,i===wall.length-1)).join(''):`<div class="pempty"><b>${fAny()?'沒有符合的活動':'今天沒有活動'}</b>${fAny()?'<button class="lnk2" data-fclear>清除篩選</button>':''}</div>`}</div>
