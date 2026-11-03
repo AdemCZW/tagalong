@@ -2092,14 +2092,24 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 #phone.me-top .pmode::before{background:#111}
 #phone.me-top .pmode button[aria-pressed="true"]{background:none;color:var(--sig)}
 /* the view thumb is redrawn with the header, so it slides in from the side it left */
-.pvs[data-on="list"]::before{animation:pvsToList .28s cubic-bezier(.6,0,.2,1)}
-.pvs[data-on="wall"]::before{animation:pvsToWall .28s cubic-bezier(.6,0,.2,1)}
+.pvs.sw[data-on="list"]::before{animation:pvsToList .28s cubic-bezier(.6,0,.2,1)}
+.pvs.sw[data-on="wall"]::before{animation:pvsToWall .28s cubic-bezier(.6,0,.2,1)}
 @keyframes pvsToList{from{transform:none}to{transform:translateX(100%)}}
 @keyframes pvsToWall{from{transform:translateX(100%)}to{transform:none}}
-.pmwipe{position:absolute;inset:0;z-index:150;display:grid;place-items:center;pointer-events:none;container-type:inline-size}
-.pmwipe.date{background:#F2337A;color:#fff}
-.pmwipe.group{background:#FFE500;color:#111}
-.pmwipe b{font-size:42cqw;font-weight:900;line-height:1;letter-spacing:-.02em}
+.pmwipe{position:absolute;inset:0;z-index:150;overflow:hidden;pointer-events:none;container-type:size}
+.pm-date{color:#fff}
+.pm-group{color:#111}
+.pm-strips{position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,1fr)}
+.pm-strips i{display:block;margin-right:-1px}
+.pm-stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5cqh}
+.pm-art{position:relative;width:78cqw;height:50cqw;flex:none}
+.pm-d1,.pm-d2{position:absolute;top:0;width:50cqw;height:50cqw;border-radius:50%}
+.pm-d1{left:0;background:#5A0B1E}
+.pm-d2{right:0;background:#1B2BFF}
+.pm-lens{position:absolute;inset:0;width:100%;height:100%}
+.pm-bowl{position:absolute;width:21cqw;height:21cqw;border-radius:50%;background:#FFE9C9;box-shadow:inset 0 0 0 5.5cqw var(--c);outline:1.6cqw solid #FFE9C9;outline-offset:-1.6cqw}
+.pm-word{display:flex;gap:1cqw;font-size:40cqw;font-weight:900;line-height:1;letter-spacing:-.02em}
+.pm-word span{display:block;will-change:transform}
 .pst.pghost{position:absolute;z-index:6;scroll-snap-align:none;transform-origin:0 0;pointer-events:none;will-change:transform}
 .pghost-back{position:absolute;left:0;right:0;top:0;bottom:0;z-index:5;background:#0B0B0B;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.pmode::before,.pvs::before{transition:none;animation:none}}
@@ -5095,7 +5105,7 @@ function posterHTML(a,end){
     <div class="pfoot"><div class="w"><b class="tnum"><i>${whenLabel(a.start)}</i>${hm(a.start)}</b><span>${esc(a.place)}${posterPay(a)?` · ${posterPay(a)}`:''}</span></div>${posterWords(joinPill(a))}</div>
   </section>`;
 }
-let posterView='wall',posterKey='';
+let posterView='wall',posterLastView='wall',posterKey='';
 function posterPaint(){
   const ph=$('#phone'),w=$('#homeBody .pwall');ph.classList.add('pw');
   let best=null,d=1e9;if(w&&st.tab==='home'&&posterView==='wall')w.querySelectorAll('.pst').forEach(p=>{const x=Math.abs(p.offsetTop-w.scrollTop);if(x<d){d=x;best=p;}});
@@ -5113,10 +5123,11 @@ renderHome=function(){
   let top=$('#s-home .ptop');if(!top){sc.insertAdjacentHTML('afterbegin','<div class="ptop"></div>');top=$('#s-home .ptop');}
   top.innerHTML=`<span class="plogo">Tagalong</span>
     <div class="seg" role="tablist" style="--ix:${['all','today','weekend'].indexOf(st.seg)}">${posterMode==='date'?[['all','全部'],['f','女生'],['m','男生']].map(([k,n])=>`<button role="tab" data-psex="${k}" aria-selected="${posterSex===k}">${n}</button>`).join(''):[['all','全部'],['today','今天'],['weekend','週末']].map(([k,n])=>`<button role="tab" data-seg="${k}" aria-selected="${st.seg===k}">${n}</button>`).join('')}</div>
-    <div class="pvs" data-on="${posterView}" role="group" aria-label="切換檢視">
+    <div class="pvs${posterView!==posterLastView?' sw':''}" data-on="${posterView}" role="group" aria-label="切換檢視">
       <button class="${posterView==='wall'?'on':''}" data-pview="wall" aria-pressed="${posterView==='wall'}" aria-label="大海報" title="大海報"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="1" width="12" height="18" rx="2"/></svg></button>
       <button class="${posterView==='list'?'on':''}" data-pview="list" aria-pressed="${posterView==='list'}" aria-label="小格子、篩選" title="小格子、篩選"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5"/></svg>${fn&&posterView==='wall'?`<i>${fn}</i>`:''}</button>
     </div>`;
+  posterLastView=posterView;
   sc.classList.toggle('pv-wall',posterView==='wall');sc.classList.toggle('pv-list',posterView==='list');
   $('#homeBody').innerHTML=`
     <div class="pwall">${wall.length?wall.map((a,i)=>posterHTML(a,i===wall.length-1)).join(''):`<div class="pempty"><b>${fAny()?'沒有符合的活動':'今天沒有活動'}</b>${fAny()?'<button class="lnk2" data-fclear>清除篩選</button>':''}</div>`}</div>
@@ -5424,17 +5435,36 @@ if(!/jsdom/i.test(navigator.userAgent))posterSeedMeals();
 const posterCanAnim=()=>!reduced&&typeof Element.prototype.animate==='function';
 let posterBusy=false;
 function posterModeKeys(m){const p=$('.pmode');if(p)p.dataset.on=m;$$('.pmode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pmode===m));}
-/* 揪團 / 約會: the new colour grows out of the key, fills the phone with the mode's name, then lifts away */
+/* 揪團 / 約會: colour strips drop in like shutters; behind them the mode's own picture plays (two circles meet / bowls land on the table) and its name lands; then the strips lift off the new screen */
 function posterSwitchMode(m,key){
   if(!posterCanAnim()){posterSetMode(m);return;}
   if(posterBusy)return;posterBusy=true;
-  const ph=$('#phone'),P=ph.getBoundingClientRect(),K=key.getBoundingClientRect(),x=K.left+K.width/2-P.left,y=K.top+K.height/2-P.top,R=Math.ceil(Math.hypot(Math.max(x,P.width-x),Math.max(y,P.height-y)));
   posterModeKeys(m);
-  const o=document.createElement('div');o.className='pmwipe '+(m==='date'?'date':'group');o.innerHTML=`<b>${m==='date'?'約會':'揪團'}</b>`;ph.appendChild(o);
-  o.animate({clipPath:[`circle(0px at ${x}px ${y}px)`,`circle(${R}px at ${x}px ${y}px)`]},{duration:420,easing:'cubic-bezier(.6,0,.2,1)',fill:'both'}).finished.then(()=>{
-    posterSetMode(m);
-    return o.animate({transform:['translateY(0)','translateY(-100%)']},{duration:340,delay:170,easing:'cubic-bezier(.7,0,.2,1)',fill:'both'}).finished;
-  }).then(()=>{o.remove();posterBusy=false;}).catch(()=>{o.remove();posterBusy=false;});
+  const date=m==='date',ph=$('#phone'),strips=date?['#F2337A','#FF4F8B','#F2337A','#D81E66','#F2337A']:['#FFE500','#FFD60A','#FFE500','#FFC800','#FFE500'];
+  const art=date
+    ?`<div class="pm-art"><i class="pm-d1"></i><i class="pm-d2"></i><svg class="pm-lens" viewBox="0 0 280 180" aria-hidden="true"><defs><clipPath id="pmL"><circle cx="90" cy="90" r="90"/></clipPath></defs><circle cx="190" cy="90" r="90" fill="#FFE500" clip-path="url(#pmL)"/></svg></div>`
+    :`<div class="pm-art">${[['#1B2BFF',4,44],['#D7261E',27,8],['#19E3C4',52,0],['#5A0B1E',76,12],['#111',98,50]].map(([c,x,y])=>`<i class="pm-bowl" style="left:${x/1.3}%;top:${y}%;--c:${c}"></i>`).join('')}</div>`;
+  const o=document.createElement('div');o.className='pmwipe '+(date?'pm-date':'pm-group');
+  o.innerHTML=`<div class="pm-strips">${strips.map(c=>`<i style="background:${c}"></i>`).join('')}</div><div class="pm-stage">${art}<b class="pm-word">${[...(date?'約會':'揪團')].map(c=>`<span>${c}</span>`).join('')}</b></div>`;
+  ph.appendChild(o);
+  const E={spring:'cubic-bezier(.2,1.5,.35,1)',cut:'cubic-bezier(.7,0,.2,1)'},bars=[...o.querySelectorAll('.pm-strips i')];
+  const covered=bars.map((s,i)=>s.animate({transform:['translateY(101%)','translateY(0)']},{duration:300,delay:i*40,easing:E.cut,fill:'both'}).finished);
+  const beats=[];
+  [...o.querySelectorAll('.pm-word span')].forEach((s,i)=>beats.push(s.animate([{opacity:0,transform:'translateY(55%) scale(.6) rotate(-8deg)'},{opacity:1,transform:'none'}],{duration:420,delay:300+i*90,easing:E.spring,fill:'both'}).finished));
+  if(date){
+    beats.push(o.querySelector('.pm-d1').animate({transform:['translateX(-130%)','translateX(0)']},{duration:430,delay:230,easing:E.spring,fill:'both'}).finished);
+    beats.push(o.querySelector('.pm-d2').animate({transform:['translateX(130%)','translateX(0)']},{duration:430,delay:230,easing:E.spring,fill:'both'}).finished);
+    beats.push(o.querySelector('.pm-lens').animate([{opacity:0,transform:'scale(.5)'},{opacity:1,transform:'none'}],{duration:320,delay:520,easing:E.spring,fill:'both'}).finished);
+  }else{
+    [...o.querySelectorAll('.pm-bowl')].forEach((b,i)=>beats.push(b.animate([{opacity:0,transform:'translateY(-90%) scale(.3)'},{opacity:1,transform:'none'}],{duration:400,delay:230+i*65,easing:E.spring,fill:'both'}).finished));
+  }
+  const end=()=>{o.remove();posterBusy=false;};
+  Promise.all(covered).then(()=>posterSetMode(m)).catch(()=>{});
+  Promise.all(covered.concat(beats)).then(()=>{
+    const out=bars.map((s,i)=>s.animate({transform:['translateY(0)','translateY(-101%)']},{duration:340,delay:90+i*40,easing:E.cut,fill:'both'}).finished);
+    out.push(o.querySelector('.pm-stage').animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-14%)'}],{duration:240,delay:70,easing:'ease-in',fill:'both'}).finished);
+    return Promise.all(out);
+  }).then(end).catch(end);
 }
 /* 大海報 / 小格子: the poster on screen is the one that moves: it shrinks into its tile, or grows back out of it */
 function posterGhost(poster,box){
