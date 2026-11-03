@@ -2079,6 +2079,30 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .pact p{margin:8px 0 0;font-size:13px;font-weight:700;color:var(--sig)}
 .pact-h{display:flex;align-items:baseline;gap:8px;padding:24px var(--gut,18px) 8px;font-size:20px;font-weight:900;color:var(--text)}
 .pact-h small{font-size:12px;font-weight:700;color:var(--text3)}
+
+/* switch keys: one thumb that slides between the two */
+.pmode{isolation:isolate}
+.pvs{position:relative;isolation:isolate}
+.pmode::before,.pvs::before{content:"";position:absolute;z-index:-1;left:2px;top:2px;bottom:2px;width:calc(50% - 2px);border-radius:7px;background:var(--pink,#fff);transition:transform .28s cubic-bezier(.6,0,.2,1),background .25s}
+.pmode[data-on="date"]::before,.pvs[data-on="list"]::before{transform:translateX(100%)}
+.pmode button{flex:1;min-width:42px;padding:0 6px;transition:color .2s}
+.pmode button[aria-pressed="true"]{background:none;color:var(--pbg,#0B0B0B)}
+.pvs button{flex:1;transition:color .2s}
+.pvs button.on{background:none;color:var(--pbg,#0B0B0B)}
+#phone.me-top .pmode::before{background:#111}
+#phone.me-top .pmode button[aria-pressed="true"]{background:none;color:var(--sig)}
+/* the view thumb is redrawn with the header, so it slides in from the side it left */
+.pvs[data-on="list"]::before{animation:pvsToList .28s cubic-bezier(.6,0,.2,1)}
+.pvs[data-on="wall"]::before{animation:pvsToWall .28s cubic-bezier(.6,0,.2,1)}
+@keyframes pvsToList{from{transform:none}to{transform:translateX(100%)}}
+@keyframes pvsToWall{from{transform:translateX(100%)}to{transform:none}}
+.pmwipe{position:absolute;inset:0;z-index:150;display:grid;place-items:center;pointer-events:none;container-type:inline-size}
+.pmwipe.date{background:#F2337A;color:#fff}
+.pmwipe.group{background:#FFE500;color:#111}
+.pmwipe b{font-size:42cqw;font-weight:900;line-height:1;letter-spacing:-.02em}
+.pst.pghost{position:absolute;z-index:6;scroll-snap-align:none;transform-origin:0 0;pointer-events:none;will-change:transform}
+.pghost-back{position:absolute;left:0;right:0;top:0;bottom:0;z-index:5;background:#0B0B0B;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.pmode::before,.pvs::before{transition:none;animation:none}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -5057,7 +5081,7 @@ const posterStage=a=>{const h=posterOf(a);return `<div class="part"><div class="
 /* overview: the same posters, small */
 function posterMini(a){
   const h=posterOf(a),[bg,ink]=posterCol(a);
-  return `<div class="cell pmini" style="--b:${bg};--k:${ink}"><button class="ptap" data-detail="${a.id}" aria-label="${esc(a.title)}"></button>
+  return `<div class="cell pmini" data-pid="${a.id}" style="--b:${bg};--k:${ink}"><button class="ptap" data-detail="${a.id}" aria-label="${esc(a.title)}"></button>
     ${h&&h.bg?`<div class="pbgl">${h.bg()}</div>`:''}${posterStage(a)}
     <div class="pm-f"><span class="w"><b class="tnum"><i>${whenLabel(a.start)}</i>${hm(a.start)}</b><small>${esc(a.place)}${posterPay(a)?` · ${posterPay(a)}`:''}</small></span><span class="pj">${posterWords(miniJoin(a))}</span></div></div>`;
 }
@@ -5089,7 +5113,7 @@ renderHome=function(){
   let top=$('#s-home .ptop');if(!top){sc.insertAdjacentHTML('afterbegin','<div class="ptop"></div>');top=$('#s-home .ptop');}
   top.innerHTML=`<span class="plogo">Tagalong</span>
     <div class="seg" role="tablist" style="--ix:${['all','today','weekend'].indexOf(st.seg)}">${posterMode==='date'?[['all','全部'],['f','女生'],['m','男生']].map(([k,n])=>`<button role="tab" data-psex="${k}" aria-selected="${posterSex===k}">${n}</button>`).join(''):[['all','全部'],['today','今天'],['weekend','週末']].map(([k,n])=>`<button role="tab" data-seg="${k}" aria-selected="${st.seg===k}">${n}</button>`).join('')}</div>
-    <div class="pvs" role="group" aria-label="切換檢視">
+    <div class="pvs" data-on="${posterView}" role="group" aria-label="切換檢視">
       <button class="${posterView==='wall'?'on':''}" data-pview="wall" aria-pressed="${posterView==='wall'}" aria-label="大海報" title="大海報"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="1" width="12" height="18" rx="2"/></svg></button>
       <button class="${posterView==='list'?'on':''}" data-pview="list" aria-pressed="${posterView==='list'}" aria-label="小格子、篩選" title="小格子、篩選"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5"/></svg>${fn&&posterView==='wall'?`<i>${fn}</i>`:''}</button>
     </div>`;
@@ -5111,7 +5135,7 @@ renderHome=function(){
 };
 FX.click.push((b,d)=>{
   if(!d.pview)return false;
-  posterView=d.pview;renderHome();$('#s-home').scrollTop=0;return true;
+  posterSwitchView(d.pview);return true;
 });
 (function(){
   const base=switchTab;switchTab=function(){base.apply(this,arguments);posterPaint();};
@@ -5316,12 +5340,12 @@ FX.post.push(a=>{if(posterMode==='date'){a.dating=true;a.sex='f';a.who='安安';
 function posterSetMode(m){
   posterMode=m;if(m==='date')posterSeedDates();
   $('#phone').classList.toggle('md',m==='date');
-  $$('.pmode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pmode===m));
+  posterModeKeys(m);
   switchTab(st.tab);
 }
-$('#phone').insertAdjacentHTML('beforeend',`<div class="pmode" role="group" aria-label="切換模式"><button data-pmode="group" aria-pressed="true">揪團</button><button data-pmode="date" aria-pressed="false">約會</button></div>`);
+$('#phone').insertAdjacentHTML('beforeend',`<div class="pmode" data-on="group" role="group" aria-label="切換模式"><button data-pmode="group" aria-pressed="true">揪團</button><button data-pmode="date" aria-pressed="false">約會</button></div>`);
 FX.click.push((b,d)=>{
-  if(d.pmode){if(d.pmode!==posterMode)posterSetMode(d.pmode);return true;}
+  if(d.pmode){if(d.pmode!==posterMode)posterSwitchMode(d.pmode,b);return true;}
   if(d.psex){posterSex=d.psex;renderHome();return true;}
   return false;
 });
@@ -5395,6 +5419,63 @@ function posterSeedMeals(){
   const w=byId(4);if(w&&!w.pact)w.pact={ride:'各自到現場',budget:'$300–800',drink:'微醺',avoid:[],length:'半日 2–3 小時'};
 }
 if(!/jsdom/i.test(navigator.userAgent))posterSeedMeals();
+
+/* ---------- switching: animations run only where the browser can (not under reduced motion or jsdom) ---------- */
+const posterCanAnim=()=>!reduced&&typeof Element.prototype.animate==='function';
+let posterBusy=false;
+function posterModeKeys(m){const p=$('.pmode');if(p)p.dataset.on=m;$$('.pmode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pmode===m));}
+/* 揪團 / 約會: the new colour grows out of the key, fills the phone with the mode's name, then lifts away */
+function posterSwitchMode(m,key){
+  if(!posterCanAnim()){posterSetMode(m);return;}
+  if(posterBusy)return;posterBusy=true;
+  const ph=$('#phone'),P=ph.getBoundingClientRect(),K=key.getBoundingClientRect(),x=K.left+K.width/2-P.left,y=K.top+K.height/2-P.top,R=Math.ceil(Math.hypot(Math.max(x,P.width-x),Math.max(y,P.height-y)));
+  posterModeKeys(m);
+  const o=document.createElement('div');o.className='pmwipe '+(m==='date'?'date':'group');o.innerHTML=`<b>${m==='date'?'約會':'揪團'}</b>`;ph.appendChild(o);
+  o.animate({clipPath:[`circle(0px at ${x}px ${y}px)`,`circle(${R}px at ${x}px ${y}px)`]},{duration:420,easing:'cubic-bezier(.6,0,.2,1)',fill:'both'}).finished.then(()=>{
+    posterSetMode(m);
+    return o.animate({transform:['translateY(0)','translateY(-100%)']},{duration:340,delay:170,easing:'cubic-bezier(.7,0,.2,1)',fill:'both'}).finished;
+  }).then(()=>{o.remove();posterBusy=false;}).catch(()=>{o.remove();posterBusy=false;});
+}
+/* 大海報 / 小格子: the poster on screen is the one that moves: it shrinks into its tile, or grows back out of it */
+function posterGhost(poster,box){
+  const g=poster.cloneNode(true);g.classList.add('pghost');g.removeAttribute('data-pid');
+  g.style.cssText+=`;left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px`;
+  return g;
+}
+function posterSwitchView(v){
+  if(v===posterView||posterBusy)return;
+  const sc=$('#s-home'),apply=()=>{posterView=v;renderHome();sc.scrollTop=0;};
+  if(!posterCanAnim()||st.tab!=='home'){apply();return;}
+  const rel=(el,S)=>{const a=el.getBoundingClientRect(),b=sc.getBoundingClientRect();return {left:a.left-b.left,top:a.top-b.top+S,width:a.width,height:a.height};};
+  const done=()=>{posterBusy=false;};
+  if(v==='list'){
+    const w=$('#homeBody .pwall'),cur=[...w.querySelectorAll('.pst')].sort((a,b)=>Math.abs(a.offsetTop-w.scrollTop)-Math.abs(b.offsetTop-w.scrollTop))[0];
+    if(!cur){apply();return;}
+    posterBusy=true;
+    const id=cur.dataset.pid,from=rel(cur,0),g=posterGhost(cur,from);
+    apply();sc.appendChild(g);
+    const tile=$(`#allList .pmini[data-pid="${id}"]`);
+    if(tile){const t=tile.getBoundingClientRect(),s=sc.getBoundingClientRect();if(t.bottom>s.bottom-70)sc.scrollTop=t.top-s.top-150;}
+    const to=tile?rel(tile,sc.scrollTop):{left:from.left+from.width/2,top:sc.scrollTop+from.height/2,width:1,height:1};
+    if(tile)tile.style.visibility='hidden';
+    $$('#allList .pmini').forEach((c,i)=>{if(c!==tile)c.animate([{opacity:0,transform:'scale(.9)'},{opacity:1,transform:'none'}],{duration:300,delay:150+i*22,easing:'ease-out',fill:'backwards'});});
+    const k=to.width/from.width,clip=Math.max(0,from.height-to.height/k);
+    g.animate([{transform:'none',clipPath:'inset(0 0 0 0 round 0px)'},{transform:`translate(${to.left-from.left}px,${to.top-from.top}px) scale(${k})`,clipPath:`inset(0 0 ${clip}px 0 round ${14/k}px)`}],{duration:460,easing:'cubic-bezier(.6,0,.15,1)',fill:'both'}).finished.then(()=>{if(tile)tile.style.visibility='';g.remove();done();}).catch(()=>{g.remove();done();});
+  }else{
+    const s=sc.getBoundingClientRect(),tiles=[...$$('#allList .pmini')],seen=tiles.find(t=>{const r=t.getBoundingClientRect();return r.bottom>s.top+150&&r.top<s.bottom-70;});
+    if(!seen){apply();return;}
+    posterBusy=true;
+    const id=seen.dataset.pid,S0=sc.scrollTop,to0=rel(seen,S0);
+    apply();
+    const w=$('#homeBody .pwall'),cur=w.querySelector(`.pst[data-pid="${id}"]`);
+    if(!cur){done();return;}
+    w.scrollTop=cur.offsetTop;posterPaint();
+    const full=rel(cur,0),g=posterGhost(cur,full),k=to0.width/full.width,start={left:to0.left,top:to0.top-S0},clip=Math.max(0,full.height-to0.height/k);
+    const back=document.createElement('div');back.className='pghost-back';sc.append(back,g);cur.style.visibility='hidden';
+    back.animate({opacity:[1,0]},{duration:320,delay:140,fill:'both'});
+    g.animate([{transform:`translate(${start.left-full.left}px,${start.top-full.top}px) scale(${k})`,clipPath:`inset(0 0 ${clip}px 0 round ${14/k}px)`},{transform:'none',clipPath:'inset(0 0 0 0 round 0px)'}],{duration:460,easing:'cubic-bezier(.6,0,.15,1)',fill:'both'}).finished.then(()=>{cur.style.visibility='';g.remove();back.remove();done();}).catch(()=>{cur.style.visibility='';g.remove();back.remove();done();});
+  }
+}
 
 tgBoot();
 </script>
