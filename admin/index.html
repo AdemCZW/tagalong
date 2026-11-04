@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Tagalong 後台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div id="app">
+  <header class="side">
+    <a class="logo" href="#overview">TAGALONG<small>後台</small></a>
+    <nav aria-label="後台選單">
+      <a href="#overview" data-r="overview">總覽</a>
+      <a href="#users" data-r="users">用戶</a>
+      <a href="#events" data-r="events">活動</a>
+      <a href="#reports" data-r="reports">檢舉<i class="badge" data-b="reports" hidden></i></a>
+      <a href="#safety" data-r="safety">報平安<i class="badge" data-b="safety" hidden></i></a>
+      <a href="#actions" data-r="actions">操作紀錄</a>
+    </nav>
+    <p class="who"></p>
+  </header>
+  <main id="view" tabindex="-1"></main>
+</div>
+<div id="gate" hidden></div>
+<script src="admin.js"></script>
+</body>
+</html>

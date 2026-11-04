@@ -815,7 +815,7 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .cal-frm{margin-top:10px}
 
 /* ===== feat/linelogin ===== */
-/* LINE sign-in row on 我. Green is LINE's own button colour, used only on the LINE button. */
+/* sign-in row on 我. Green is LINE's own button colour, used only on the LINE button; Google's is white with its G mark */
 .ln-me{display:flex;align-items:center;gap:12px;margin:12px var(--gut,18px) 0;padding:14px 16px;border-radius:14px;background:var(--panel,#171717)}
 .ln-t{flex:1;min-width:0}
 .ln-t b{display:block;font-size:15px;font-weight:900;color:var(--text,#fff)}
@@ -824,6 +824,12 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .ln-btn:disabled{opacity:.6;cursor:default}
 .ln-btn:focus-visible,.ln-out:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .ln-mk{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:#06C755;color:#fff;font:900 11px/1 var(--f,"Noto Sans TC",sans-serif)}
+.ln-btns{flex:none;display:flex;flex-direction:column;gap:8px}
+.gg-btn{flex:none;display:flex;align-items:center;justify-content:center;gap:10px;height:40px;padding:0 16px;border:1px solid #747775;border-radius:10px;background:#fff;color:#1F1F1F;font:700 14px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
+.gg-btn:disabled{opacity:.6;cursor:default}
+.gg-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.gg-g{flex:none;display:block}
+.gg-mk{background:#fff}
 .ln-out{flex:none;height:34px;padding:0 12px;border:1px solid rgba(255,255,255,.3);border-radius:9px;background:none;color:var(--text,#fff);font:700 13px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
 
 /* the gate: a poster like 我, in the sign-in colours; it covers everything until there is a session */
@@ -833,6 +839,7 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .lg-foot{position:absolute;left:0;right:0;bottom:0;padding:22px var(--gut,20px) calc(var(--bot,16px) + 14px);background:#111;color:#fff;display:flex;flex-direction:column;gap:12px}
 .lg-lead{margin:0;font-size:17px;font-weight:900;line-height:1.4}
 .lg-btn{height:52px;font-size:17px;width:100%;display:grid;place-items:center;text-align:center}
+.gg-btn.lg-btn{display:flex}
 #phone:has(.lngate) .status{z-index:270;color:#111!important}
 #phone:has(.lngate) .status .bat{border-color:currentColor}#phone:has(.lngate) .status .bat::after{background:currentColor}
 .lg-note{margin:0;font-size:12px;color:#C8C8C8;line-height:1.5}
@@ -3494,27 +3501,36 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 })();
 
 /* ===== feat/linelogin ===== */
-/* ===== feat/linelogin: 用 LINE 登入 (prefix ln) =====
+/* ===== feat/linelogin: 用 LINE / Google 登入 (prefix ln, Google button gg) =====
    Talks to the real backend (backend/, staging on Workers). Only sign-in is real for now; events are still the seed data.
-   Flow: /auth/line/start gives LINE's URL with a one-time state -> the state is kept in sessionStorage -> LINE sends the
-   browser back here with ?code&state -> the state must match (stops someone logging you into their account) -> the
-   backend swaps the code for our token, kept by TG_API. Anything failing leaves you signed out, nothing else breaks. */
+   Flow: /auth/<provider>/start gives the provider's URL with a one-time state -> {provider, state} are kept in sessionStorage
+   -> both providers send the browser back to this same page with ?code&state -> the state must match (stops someone logging
+   you into their account) and the stored provider picks the callback -> the backend swaps the code for our token, kept by
+   TG_API. Anything failing leaves you signed out, nothing else breaks. */
 (()=>{
-  const SK='tg-line-state',A=TG_API;
+  const SK='tg-line-state',PK='tg-login-provider',VK='tg-auth-via',A=TG_API,NAME={line:'LINE',google:'Google'};
   const sget=k=>{try{return sessionStorage.getItem(k);}catch(e){return null;}};
   const sset=(k,v)=>{try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v);}catch(e){}};
-  let busy=false;
+  const lset=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}};
+  const via=()=>{try{return localStorage.getItem(VK)==='google'?'google':'line';}catch(e){return 'line';}};
+  let busy=false;   /* false, or the provider being connected */
   const call=(path,opt)=>A.req(path,opt);
   const paint=()=>{if(st.tab==='me')renderMe();};
-  const fail=e=>toast(e&&e.message||'LINE 登入失敗，請再試一次');
+  const fail=(e,p='line')=>toast(e&&e.message||`${NAME[p]} 登入失敗，請再試一次`);
+  /* Google's "G" mark, as its branding asks: unaltered colours on a white button */
+  const G='<svg class="gg-g" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  const btns=cls=>`<button class="ln-btn ${cls}" data-ln-in ${busy?'disabled':''}>${busy==='line'?'連線中…':'用 LINE 登入'}</button>
+    ${gOn()?`<button class="gg-btn ${cls}" data-gg-in ${busy?'disabled':''}>${G}<span>${busy==='google'?'連線中…':'用 Google 登入'}</span></button>`:''}`;
+  /* Google stays hidden until its OAuth client exists on the server; flip TG_GOOGLE_ON then */
+  const gOn=()=>!!window.TG_GOOGLE_ON;
 
   /* the gate: with the backend on, nobody gets past it without a session. auth is 'checking' | 'in' | 'out' */
   let auth='out',door=null;
   const gateHTML=()=>`<section class="lngate" role="dialog" aria-modal="true" aria-label="登入 Tagalong">
     ${$('.pcover')?'<button class="lg-back" data-ln-back aria-label="回到首頁">‹ 首頁</button>':''}<span class="lg-logo">Tagalong</span><b class="lg-big">登入</b>
-    <div class="lg-foot"><p class="lg-lead">用 LINE 一鍵登入，就能報名和聊天。</p>
-    <button class="ln-btn lg-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button>
-    <p class="lg-note">只會用到你的 LINE 名稱，不會以你的名義發訊息。</p></div></section>`;
+    <div class="lg-foot"><p class="lg-lead">${gOn()?'用 LINE 或 Google 登入':'用 LINE 一鍵登入'}，就能報名和聊天。</p>
+    ${btns('lg-btn')}
+    <p class="lg-note">只會用到你的名稱${gOn()?'（Google 另含信箱）':''}，不會以你的名義發訊息。</p></div></section>`;
   function gate(on){
     const g=$('.lngate');
     if(on){if(g)g.outerHTML=gateHTML();else $('#phone').insertAdjacentHTML('beforeend',gateHTML());}
@@ -3526,24 +3542,25 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     if(v==='out'){if(!$('.pcover'))gate(true);else if(door)gate(true);}
     else if(v==='in'){gate(false);if(door){const b=door;door=null;b.click();}}
   }
-  async function start(){
-    if(busy)return;busy=true;paint();if($('.lngate'))gate(true);
+  async function start(p='line'){
+    if(busy||!NAME[p])return;busy=p;paint();if($('.lngate'))gate(true);
     try{
-      const {authorize_url}=await call('/auth/line/start',{method:'POST'});
-      sset(SK,new URL(authorize_url).searchParams.get('state'));
+      const {authorize_url}=await call(`/auth/${p}/start`,{method:'POST'});
+      sset(SK,new URL(authorize_url).searchParams.get('state'));sset(PK,p);
       api.go(authorize_url);
-    }catch(e){busy=false;paint();if($('.lngate'))gate(true);fail(e);}
+    }catch(e){busy=false;paint();if($('.lngate'))gate(true);fail(e,p);}
   }
-  /* back from LINE: always clean the address bar, so a refresh or a shared link can't replay the code */
+  /* back from LINE or Google: always clean the whole query (Google adds scope, authuser, prompt), so a refresh or a shared
+     link can't replay the code. Nothing stored for the provider = an attempt from before Google existed, which was LINE */
   async function finish(q){
-    const code=q.get('code'),state=q.get('state'),err=q.get('error'),mine=sget(SK);
-    sset(SK,null);
+    const code=q.get('code'),state=q.get('state'),err=q.get('error'),mine=sget(SK),p=NAME[sget(PK)]?sget(PK):'line';
+    sset(SK,null);sset(PK,null);
     try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}
-    if(err){setAuth(A.user?'in':'out');toast('已取消 LINE 登入');return;}
-    if(!code||!state||state!==mine){setAuth(A.user?'in':'out');toast('登入已逾時，請重新用 LINE 登入');return;}
-    busy=true;paint();
-    try{const d=await call('/auth/line/callback',{body:{code,state}});A.signIn(d.token,d.user);busy=false;setAuth('in');toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
-    catch(e){busy=false;setAuth('out');fail(e);}
+    if(err){setAuth(A.user?'in':'out');toast(`已取消 ${NAME[p]} 登入`);return;}
+    if(!code||!state||state!==mine){setAuth(A.user?'in':'out');toast(`登入已逾時，請重新用 ${NAME[p]} 登入`);return;}
+    busy=p;paint();
+    try{const d=await call(`/auth/${p}/callback`,{body:{code,state}});lset(VK,p);A.signIn(d.token,d.user);busy=false;setAuth('in');toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
+    catch(e){busy=false;setAuth('out');fail(e,p);}
     paint();
   }
   async function restore(){
@@ -3555,14 +3572,15 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
   async function logout(){
     try{await call('/auth/logout',{method:'POST'});}catch(e){}
-    A.signOut();setAuth('out');paint();toast('已登出');
+    lset(VK,null);A.signOut();setAuth('out');paint();toast('已登出');
   }
 
-  FX.meTop.push(()=>{const user=A.user;return user
-    ?`<div class="ln-me rv"><span class="ln-mk" aria-hidden="true">LINE</span><span class="ln-t"><b>${esc(user.display_name)}</b><small>已用 LINE 登入</small></span><button class="ln-out" data-ln-out>登出</button></div>`
-    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><button class="ln-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button></div>`;});
+  FX.meTop.push(()=>{const user=A.user,v=via();return user
+    ?`<div class="ln-me rv">${v==='google'?`<span class="ln-mk gg-mk" aria-hidden="true">${G}</span>`:'<span class="ln-mk" aria-hidden="true">LINE</span>'}<span class="ln-t"><b>${esc(user.display_name)}</b><small>已用 ${NAME[v]} 登入</small></span><button class="ln-out" data-ln-out>登出</button></div>`
+    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><span class="ln-btns">${btns('')}</span></div>`;});
   FX.click.push((b,d)=>{
-    if(d.lnIn!==undefined){start();return true;}
+    if(d.lnIn!==undefined){start('line');return true;}
+    if(d.ggIn!==undefined){start('google');return true;}
     /* the cover's doors lead into the app: signed out they lead to the gate; still checking, the tap waits for the answer */
     if(d.cvGo!==undefined&&A.enabled&&auth!=='in'){door=b;if(auth!=='checking')gate(true);return true;}
     if(d.lnBack!==undefined){door=null;gate(false);return true;}
@@ -3572,15 +3590,15 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   FX.boot.push(()=>{
     const q=new URLSearchParams(location.search);
     if(q.has('code')||q.has('error')){
-      /* coming back from LINE: skip the cover and wait on the gate until the answer is in */
+      /* coming back from LINE or Google: skip the cover and wait on the gate until the answer is in */
       const c=$('.pcover');if(c)c.remove();$('#phone').classList.remove('pcv');
-      auth='checking';if(A.enabled){busy=true;gate(true);busy=false;}
+      auth='checking';if(A.enabled){busy=NAME[sget(PK)]?sget(PK):'line';gate(true);busy=false;}
       setTimeout(()=>finish(q),0);
     }else if(A.enabled)restore();
   });
   /* a session that dies mid-use (401 anywhere) sends you back to the gate */
   A.on('auth',u=>{if(!u&&auth==='in')setAuth('out');});
-  const api=window.TG_LINE={start,finish,restore,logout,gate,get state(){return auth;},go:u=>location.assign(u),get user(){return A.user;},SK};
+  const api=window.TG_LINE={start,finish,restore,logout,gate,get state(){return auth;},go:u=>location.assign(u),get user(){return A.user;},get via(){return via();},SK,PK};
 })();
 
 /* ===== feat/maplibre ===== */
