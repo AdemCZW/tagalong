@@ -1,6 +1,10 @@
+<!doctype html><html lang="zh-Hant"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0D0E11">
+<meta name="theme-color" content="#0B0B0B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
@@ -12,11 +16,12 @@
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Serif+TC:wght@900&family=Barlow+Condensed:wght@600&family=Noto+Sans+TC:wght@400..900&display=swap" as="style">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Serif+TC:wght@900&family=Barlow+Condensed:wght@600&family=Noto+Sans+TC:wght@400..900&display=swap" media="print" onload="this.media='all'">
 <style>
+:root{color-scheme:dark}
 /* Layout: native-iOS app shell with Apple product-page storytelling. Warm milk-white paper, graphite stages for featured
    events, titanium-finish glyphs as the "product shot". System fonts only (SF Pro / PingFang on Apple devices).
    Large type, generous whitespace, inset grouped lists, Liquid Glass floating tab bar. Single light look by choice. */
 :root{
-  color-scheme:light;
+  color-scheme:dark;
   --spring:cubic-bezier(.32,.72,0,1);
   --top:50px; --bot:16px
 }
@@ -562,7 +567,7 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .tg.hot{background:var(--accent-lo)}
 .riskc{margin:18px 16px 0;border-radius:var(--r);color:var(--on-g);background:var(--grain-d) 0 0/200px 200px,linear-gradient(165deg,var(--g-top),var(--g-bot));box-shadow:var(--sh-g),inset 0 1px 0 rgba(255,255,255,.08)}
 .riskc.high{box-shadow:var(--sh-g),inset 0 0 0 2px var(--accent-lo)}
-.riskc h3{letter-spacing:-.02em}
+.riskc h2{letter-spacing:-.02em}
 .riskc p{margin:6px 0 0;font-size:13.5px;line-height:1.5;color:var(--on-g2)}
 .riskc ul{list-style:none;margin:12px 0 0;padding:12px 0 0;display:grid;gap:10px}
 .riskc li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13.5px;line-height:1.45;color:var(--on-g2)}
@@ -686,6 +691,32 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .fr.pr .rec[aria-pressed="true"]{background:rgba(255,90,54,.12);border-color:var(--accent);color:var(--accent-ink)}
 .fr.pr .rec[aria-pressed="true"]::before{content:'♥ '}
 
+
+/* ===== feat/01share ===== */
+/* share / calendar rows on the event page and in the calendar sheet */
+.shr-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--bg2);color:var(--text);font-weight:900;font-size:18px;flex:none}
+.shr-ic svg.i{width:20px;height:20px}
+.shr-ic.shr-g{font-family:var(--display);color:#1A73E8}
+.shr-cal a.cell{color:inherit;text-decoration:none}
+.shr-rows .cell,.shr-cal .cell{min-height:60px}
+/* fallback box: the text, selected */
+.shr-bx{margin:0 16px}
+.shr-ta{font-size:15px!important;min-height:110px!important;font-weight:500!important}
+/* ended */
+.mini.shr-end:disabled,.pill.shr-end:disabled{background:rgba(120,120,128,.16);color:var(--text3);box-shadow:none}
+/* starting soon / in progress line */
+.shr-soon .si{background:var(--accent)}
+.shr-live .si{background:var(--ok)}
+.shr-soon [data-until]{font-weight:800;color:var(--accent)}
+/* ticket: small clock button in the pass header */
+.shr-pcal{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;margin-left:8px;background:rgba(255,255,255,.14);color:#fff;flex:none;position:relative;z-index:1}
+.shr-pcal svg.i{width:16px;height:16px}
+.shr-pcal:active{transform:scale(.92)}
+/* iOS add-to-home hint */
+.shr-a2hs{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;margin:12px 16px 0;padding:12px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh)}
+.shr-a2hs b{display:block;font-size:15px;font-weight:800}
+.shr-a2hs small{display:block;font-size:12.5px;color:var(--text2);line-height:1.4}
+.shr-x{width:30px;height:30px;border-radius:50%;background:var(--bg2);color:var(--text2);font-size:18px;line-height:1;display:grid;place-items:center}
 
 /* ===== feat/album ===== */
 /* album: covers row on Me, album overlay, photo viewer, memory card sheet */
@@ -814,6 +845,22 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .stbar.cal-in{margin-top:0}
 .cal-frm{margin-top:10px}
 
+/* ===== feat/host ===== */
+/* feat/host: the host's team list on a server event */
+.ho-g .cell{min-height:56px}
+.ho-plus{font-weight:700;color:var(--text3);margin-left:2px}
+.ho-note{color:var(--text3)}
+.ho-wl{color:var(--text2)}
+.ho-empty{margin:0 16px}
+.ho-err{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin:14px 16px 0;padding:12px 14px;border-radius:14px;background:rgba(255,90,54,.1);font-size:13.5px;line-height:1.4;color:var(--text)}
+.ho-ic{display:grid;place-items:center}
+.ho-ic svg{width:18px;height:18px}
+.ho-cf b{display:block;font-size:15px}
+.ho-cf small{display:block;white-space:normal;line-height:1.4;color:var(--text2)}
+.ho-cf .rqb{flex-direction:column;align-items:stretch;gap:6px}
+.ho-tel{text-decoration:none;display:inline-grid;place-items:center;white-space:nowrap;color:#fff;background:var(--ink)}
+.ho-emgl .cell{grid-template-columns:auto minmax(0,1fr) auto}
+
 /* ===== feat/linelogin ===== */
 /* sign-in row on 我. Green is LINE's own button colour, used only on the LINE button; Google's is white with its G mark */
 .ln-me{display:flex;align-items:center;gap:12px;margin:12px var(--gut,18px) 0;padding:14px 16px;border-radius:14px;background:var(--panel,#171717)}
@@ -844,6 +891,7 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 #phone:has(.lngate) .status .bat{border-color:currentColor}#phone:has(.lngate) .status .bat::after{background:currentColor}
 .lg-note{margin:0;font-size:12px;color:#C8C8C8;line-height:1.5}
 .lg-back{position:absolute;right:var(--gut,20px);top:calc(var(--top,50px) + 6px);height:32px;padding:0 12px;border:2px solid #111;border-radius:9px;background:none;color:#111;font:900 13px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
+.lg-back::before{content:"";position:absolute;inset:-6px -4px}
 
 /* ===== feat/maplibre ===== */
 /* 附近: real map (MapLibre) in place of the radar canvas */
@@ -1037,6 +1085,24 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
   font-size:24px;font-weight:900;letter-spacing:-.01em}
 .sf-112 small{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.85)}
 .sf-112:active{transform:scale(.98)}
+.sf-165{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;margin:8px 16px 0;padding:12px 14px;border-radius:14px;text-decoration:none;
+  background:var(--card);box-shadow:0 0 0 1px var(--line);color:var(--text)}
+.sf-165 .sf-n{font-size:22px;font-weight:900;letter-spacing:-.01em;color:#FF5A36}
+.sf-165 b{display:block;font-size:15px;font-weight:700}
+.sf-165 small{display:block;font-size:12.5px;color:var(--text2);line-height:1.4}
+.sf-165:active{transform:scale(.98)}
+/* feedback sheet: 檢舉 entry (rendered by feat/safety on top of the core sheet) */
+.sf-rp{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 10px;margin:14px 20px 0;font-size:13px;color:var(--text3)}
+.sf-rp button{font-size:13px;font-weight:600;color:var(--text2);padding:4px 2px;text-decoration:underline;text-decoration-color:var(--sep2);text-underline-offset:3px}
+/* chat anti-scam (feat/sync_social draws these; the safety rules live here): a system-style line under a message */
+.ss-scam{display:flex;align-items:flex-start;gap:6px;align-self:stretch;margin:2px 6px 6px;padding:8px 10px;border-radius:12px;background:rgba(255,90,54,.1);font-size:12px;line-height:1.4;color:var(--text2)}
+.ss-scam svg.i{width:14px;height:14px;flex:none;margin-top:2px;color:#FF5A36}
+.ss-scam span{flex:1;min-width:0}
+.ss-scam button{flex:none;padding:0 2px;border:0;background:none;font:700 12px/1.4 inherit;color:#FF5A36;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+/* confirm bar above the composer */
+.ss-cf{display:flex;align-items:center;gap:10px;margin:0 12px 6px;padding:10px 12px;border-radius:14px;background:var(--card);box-shadow:0 0 0 1px var(--line);font-size:13px;line-height:1.4;color:var(--text)}
+.ss-cf>span:first-child{flex:1;min-width:0}
+.ss-cfb{display:flex;gap:6px;flex:none}
 .sf-hg{margin-top:4px}
 .sf-hg .av.sf-pin{display:grid;place-items:center}
 .sf-hg .av.sf-pin svg{width:18px;height:18px}
@@ -1067,7 +1133,7 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 
 /* ===== feat/sync_events ===== */
 /* the one quiet line when the server could not be reached: under the mode tabs, in the poster's own ink */
-.se-note{position:absolute;left:var(--gut,20px);top:calc(var(--top,50px) + 80px);margin:0;font:600 11px/1.3 var(--f,"Noto Sans TC",sans-serif);opacity:.7;pointer-events:none}
+.se-note{position:absolute;left:var(--gut,20px);top:calc(var(--top,50px) + 80px);margin:0;font:600 11px/1.3 var(--f,"Noto Sans TC",sans-serif);pointer-events:none}
 
 /* ===== feat/sync_social ===== */
 .bub.ss-pend{opacity:.55}
@@ -1167,7 +1233,8 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
    · Amber (#FF7A1A) is the only chromatic colour the system itself uses; category tiles carry their own line colour.
    ===================================================================================================== */
 :root{
-    --desk:#050507;     
+    color-scheme:dark;
+    --desk:#050507;
        --g-line:rgba(236,236,230,.14);
     --sh:0 0 0 0 transparent; --sh-g:0 0 0 0 transparent;  --grain-d:none;
   --f:"Noto Sans TC","Hiragino Sans","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
@@ -1319,7 +1386,7 @@ input[role="switch"]:checked::after{background:var(--onink)}
 .stbar,.riskc,.alert,.note,.po-card,.stk,.bf-bar,.sf-done,.wx-cx,.tr-card,.cal-card,.al-cov,.rc-dp,.ob-cat{background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;color:var(--text)}
 .riskc.high{border-color:var(--accent)!important}
 .riskc .eb{color:var(--text3)!important}.riskc.high .eb{color:var(--accent)!important}
-.riskc h3{font-family:var(--f);color:var(--text)!important;-webkit-text-fill-color:var(--text)}
+.riskc h2{font-family:var(--f);color:var(--text)!important;-webkit-text-fill-color:var(--text)}
 .riskc p,.riskc li{color:var(--text2)!important}.riskc li b{color:var(--text)!important}
 .riskc ul{border-top:1px dotted var(--line-hi)!important}
 .riskc .ri,.alert .ri,.stbar .si,.bf-bar .bf-si,.stk-ic,.wx-ic,.ntic{background:var(--bg3)!important;color:var(--text)!important}
@@ -1405,7 +1472,7 @@ input[role="switch"]:checked::after{background:var(--onink)}
 .seg button .ct{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.06em;color:var(--text3)}
 .seg button[aria-selected="true"] .ct{color:var(--accent)}
 .fbar{margin:0 0 6px;padding:0 0 0 var(--gut);gap:0;align-items:stretch;border-top:1px solid var(--line)}
-.fbar .fbtn{position:relative;width:40px;height:44px;padding:0;justify-content:center;gap:0;font-size:0;border:0!important;border-right:1px solid var(--line)!important;background:transparent!important;color:var(--text2)!important}
+.fbar .fbtn{position:relative;width:44px;height:44px;padding:0;justify-content:center;gap:0;font-size:0;border:0!important;border-right:1px solid var(--line)!important;background:transparent!important;color:var(--text2)!important}
 .fbar .fbtn svg{width:18px;height:18px}
 .fbar .fbtn.on{background:transparent!important;color:var(--accent)!important}
 .fbar .fbtn i{position:absolute;right:4px;top:6px;min-width:14px;height:14px;padding:0 3px;border:0!important;background:var(--accent)!important;color:var(--onink)!important;font-size:9.5px;font-weight:700;letter-spacing:0;display:grid;place-items:center}
@@ -1467,14 +1534,15 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .ptop{position:sticky;top:0;z-index:30;padding:var(--top,50px) var(--gut,20px) 0;color:var(--text);background:var(--bg)}
 #s-home.pv-wall .ptop{position:absolute;left:0;right:0;background:none;color:var(--pink);transition:color .25s}
 .ptop .plogo{font:400 23px/1 Anton,sans-serif;letter-spacing:.01em;margin-right:auto}
-.ptop .seg{display:flex;gap:12px;margin:0;padding:0;background:none!important;border:0!important;box-shadow:none!important;width:auto;height:auto}
+.ptop .seg{display:flex;gap:16px;margin:0;padding:0;background:none!important;border:0!important;box-shadow:none!important;width:auto;height:auto}
 .ptop .seg::before,.ptop .seg::after{display:none!important}
-.ptop .seg button{flex:none;width:auto;height:auto;padding:5px 0;background:none!important;border:0;border-bottom:2px solid transparent;border-radius:0;color:inherit!important;opacity:.8;font:700 14px/1.2 var(--f,"Noto Sans TC",sans-serif);letter-spacing:0}
-.ptop .seg button[aria-selected="true"]{opacity:1;border-bottom-color:currentColor}
+.ptop .seg button{flex:none;width:auto;height:auto;min-height:44px;padding:0 8px;margin:0 -8px;background:none!important;border:0;border-radius:0;color:inherit!important;font:500 14px/1.2 var(--f,"Noto Sans TC",sans-serif);letter-spacing:0}
+.ptop .seg button[aria-selected="true"]{font-weight:900}
+.ptop .seg button[aria-selected="true"]::after{content:"";position:absolute;left:8px;right:8px;bottom:9px;height:2px;background:currentColor}
 .pvs{flex:none;display:flex;padding:2px;border:2px solid currentColor;border-radius:11px}
-.pvs button{position:relative;width:34px;height:28px;display:grid;place-items:center;padding:0;border:0;border-radius:7px;background:none;color:inherit}
+.pvs button{position:relative;width:44px;height:44px;margin:-8px -5px;display:grid;place-items:center;padding:0;border:0;border-radius:7px;background:none;color:inherit}
 .pvs button svg{width:17px;height:17px;fill:currentColor}
-.pvs button i{position:absolute;right:-5px;top:-7px;min-width:16px;height:16px;border-radius:8px;background:var(--sig);color:#111;font:900 10px/16px "Noto Sans TC",sans-serif;font-style:normal;text-align:center}
+.pvs button i{position:absolute;right:0;top:1px;min-width:16px;height:16px;border-radius:8px;background:var(--sig);color:#111;font:900 10px/16px "Noto Sans TC",sans-serif;font-style:normal;text-align:center}
 
 #phone.pw .status{color:var(--pink);transition:color .25s}
 #phone.pw .status .bat{border-color:currentColor}#phone.pw .status .bat::after{background:currentColor}
@@ -1512,6 +1580,8 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .pempty{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:0 20px;color:var(--pink)}
 .pempty b{font-size:calc(14px + 7cqw);font-weight:900;line-height:1.05}
 .pempty .lnk2{align-self:flex-start;color:inherit;text-decoration:underline;background:none;border:0;padding:0;font-weight:700}
+.pempty .pe-acts{display:flex;flex-wrap:wrap;gap:6px 20px}
+.pempty .pe-acts .lnk2{min-height:44px;font-size:16px}
 
 /* detail: opens on the same poster, then the dark facts below */
 .hero.phero{background:var(--b)!important;color:var(--k);border-bottom:0!important;padding-top:calc(var(--top,50px) + 48px);overflow:hidden}
@@ -1726,7 +1796,7 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .tags{gap:2px 8px}
 .riskc{padding:14px 16px!important}
 .riskc .eb{display:none}
-.riskc h3{color:var(--sig);font-size:20px;font-weight:900;margin:0 0 4px}
+.riskc h2{color:var(--sig);font-size:20px;font-weight:900;margin:0 0 4px}
 .riskc li .ri{display:none}
 .riskc ul{border:0;margin-top:8px}
 .riskc li{padding:5px 0;border:0}
@@ -1760,7 +1830,7 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 #nearBody .findmy .lg b{font-size:20px!important}
 
 /* cover */
-.pcover{position:absolute;inset:0;z-index:200;overflow:hidden;background:#E8440F;color:#FFE9C9;transition:transform .45s cubic-bezier(.7,0,.2,1)}
+.pcover{position:absolute;inset:0;z-index:200;overflow:hidden;background:#C03A0B;color:#FFE9C9;transition:transform .45s cubic-bezier(.7,0,.2,1)}
 .pcover.out{transform:translateY(-100%);pointer-events:none}
 #phone.pcv .status{z-index:210;color:#FFE9C9}
 #phone.pcv .status .bat{border-color:currentColor}#phone.pcv .status .bat::after{background:currentColor}
@@ -1768,8 +1838,8 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .pcover{display:grid;grid-template-rows:1.14fr 1fr}
 .cv-logo{z-index:3}
 .cv-half{position:relative;display:block;width:100%;height:100%;padding:0;border:0;border-radius:0;overflow:hidden;text-align:left;color:#fff;cursor:pointer;container-type:size;--u:min(1cqw,.95cqh)}
-.cv-date{background:#F2337A}
-.cv-meal{background:#E8440F;color:#FFE9C9}
+.cv-date{background:#CC1F60}
+.cv-meal{background:#C03A0B;color:#FFE9C9}
 .cv-h{position:absolute;z-index:1;left:var(--gut,20px);top:16px;font-size:calc(41*var(--u));font-weight:900;line-height:1;letter-spacing:-.02em}
 .cv-s{position:absolute;z-index:1;left:var(--gut,20px);bottom:68px;font-size:15px;font-weight:900;line-height:1.3}
 .cv-c{position:absolute;z-index:1;left:var(--gut,20px);bottom:16px;display:grid;place-items:center;height:44px;padding:0 22px;border-radius:12px;background:#fff;color:#111;font-size:16px;font-weight:900}
@@ -1797,7 +1867,7 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .pbuy{position:absolute;z-index:2;left:18px;bottom:120px;display:grid;place-items:center;width:84px;height:84px;border-radius:50%;background:var(--sig);color:#111;font:400 21px/1 Anton,sans-serif;text-align:center;transform:rotate(-10deg);pointer-events:none}
 
 .pact{margin:18px var(--gut,18px) 0;padding:14px 16px;border-radius:14px;background:#171717;color:#fff}
-.pact h3{margin:0 0 6px;font-size:18px;font-weight:900;color:var(--sig)}
+.pact h2{margin:0 0 6px;font-size:18px;font-weight:900;color:var(--sig)}
 #detailIn .pact .kv{display:grid;grid-template-columns:72px 1fr;gap:8px;padding:5px 0;border:0;background:none}
 #detailIn .pact .kv::before{display:none}
 #detailIn .pact .kv small{color:#909090;font-size:13px;font-weight:700}
@@ -1811,7 +1881,8 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .pvs{position:relative;isolation:isolate}
 .pmode::before,.pvs::before{content:"";position:absolute;z-index:-1;left:2px;top:2px;bottom:2px;width:calc(50% - 2px);border-radius:7px;background:var(--pink,#fff);transition:transform .28s cubic-bezier(.6,0,.2,1),background .25s}
 .pmode[data-on="date"]::before,.pvs[data-on="list"]::before{transform:translateX(100%)}
-.pmode button{flex:1;min-width:42px;padding:0 6px;transition:color .2s}
+.pmode button{flex:1;min-width:44px;height:44px;margin:-9px 0;padding:0 6px;transition:color .2s}
+.pmode-nav{display:contents}
 .pmode button[aria-pressed="true"]{background:none;color:var(--pbg,#0B0B0B)}
 .pvs button{flex:1;transition:color .2s}
 .pvs button.on{background:none;color:var(--pbg,#0B0B0B)}
@@ -1840,6 +1911,18 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 .pghost-back{position:absolute;left:0;right:0;top:0;bottom:0;z-index:5;background:#0B0B0B;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.pmode::before,.pvs::before,.pvs.sw[data-on]::before{transition:none;animation:none}}
 
+/* ---------- applied filters as chips: in 總覽 under the filter bar, on the wall under the header in the poster's own colours ---------- */
+.fchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 var(--gut,18px) 10px}
+.fchips::-webkit-scrollbar{display:none}
+.fchips button{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px 0 12px;border:1px solid var(--text);border-radius:0;background:var(--text);color:var(--bg);font:700 13px/1 var(--f,"Noto Sans TC",sans-serif);white-space:nowrap}
+.fchips button i{font-style:normal;font-size:16px;line-height:1}
+.fchips .fx-all{background:none;color:var(--text);border-color:var(--line-hi,rgba(255,255,255,.3))}
+#s-home.pv-wall .ptop{height:auto;min-height:calc(var(--top,50px) + 84px)}
+.ptop .fchips.pc-wall{grid-column:1/-1;margin:0 calc(-1*var(--gut,20px));padding:2px var(--gut,20px) 8px;pointer-events:auto}
+.ptop .fchips.pc-wall button{height:30px;border-color:currentColor;background:var(--pbg,#0B0B0B);color:inherit}
+.ptop .fchips.pc-wall .fx-all{background:none}
+#s-home.pv-wall.pv-chips .pst .part{top:calc(var(--top,50px) + 134px)}
+
 /* ===== theme/wall ===== */
 /* ===== theme/wall.css: layout for windowed lists (owned with theme/poster.js) ===== */
 /* spacers stand in for the items outside the window at their exact height, so scroll position and the scrollbar stay true */
@@ -1860,7 +1943,7 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 /* cover paints before the web fonts arrive: give the Anton logo a condensed fallback so the swap barely moves */
 .cv-logo{font-family:Anton,Impact,"Arial Narrow",sans-serif}
 </style>
-
+</head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
   <filter id="w1" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/></filter>
   <filter id="w2" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="11" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/></filter>
@@ -1938,16 +2021,16 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
           <span class="arr" aria-hidden="true">→</span>
           <div class="tm"><small>結束 <em id="crNext"></em></small><div class="tmc"><button type="button" data-tm="e" data-d="-15" aria-label="結束提早 15 分">−</button><output id="crEndT" class="tnum">16:00</output><button type="button" data-tm="e" data-d="15" aria-label="結束延後 15 分">+</button></div></div>
         </div></div>
-        <div class="fr col"><label>長度 <span class="opt" id="crDurTxt"></span></label><div class="opts" id="crDur" role="radiogroup" aria-label="長度"><button type="button" data-dur="60">1 小時</button><button type="button" data-dur="120">2 小時</button><button type="button" data-dur="180">3 小時</button><button type="button" data-dur="240">4 小時</button><button type="button" data-dur="360">半天</button></div></div>
-        <div class="fr col"><label>報名截止</label><div class="opts" data-key="deadline"><button type="button" data-v="0">開始前都行</button><button type="button" data-v="60">前 1 小時</button><button type="button" data-v="180">前 3 小時</button><button type="button" data-v="1440">前一天</button></div></div>
-        <div class="fr col"><label>重複</label><div class="opts" data-key="repeat"><button type="button" data-v="不重複">不重複</button><button type="button" data-v="每週">每週</button><button type="button" data-v="隔週">隔週</button><button type="button" data-v="每月">每月</button></div></div>
+        <div class="fr col"><label>長度 <span class="opt" id="crDurTxt"></span></label><div class="opts" id="crDur" role="radiogroup" aria-label="長度"><button type="button" role="radio" data-dur="60">1 小時</button><button type="button" role="radio" data-dur="120">2 小時</button><button type="button" role="radio" data-dur="180">3 小時</button><button type="button" role="radio" data-dur="240">4 小時</button><button type="button" role="radio" data-dur="360">半天</button></div></div>
+        <div class="fr col"><label>報名截止</label><div class="opts" role="radiogroup" aria-label="報名截止" data-key="deadline"><button type="button" role="radio" data-v="0">開始前都行</button><button type="button" role="radio" data-v="60">前 1 小時</button><button type="button" role="radio" data-v="180">前 3 小時</button><button type="button" role="radio" data-v="1440">前一天</button></div></div>
+        <div class="fr col"><label>重複</label><div class="opts" role="radiogroup" aria-label="重複" data-key="repeat"><button type="button" role="radio" data-v="不重複">不重複</button><button type="button" role="radio" data-v="每週">每週</button><button type="button" role="radio" data-v="隔週">隔週</button><button type="button" role="radio" data-v="每月">每月</button></div></div>
       </div>
 
       <div class="glbl"><i>3</i>地點</div>
       <div class="frm">
         <div class="fr col"><label for="crPlace">集合點</label><input class="fld" id="crPlace" placeholder="例如：東門站 5 號出口" autocomplete="off"></div>
         <div class="fr col"><label for="crAddr">詳細地址 <span class="opt">加入後才看得到</span></label><input class="fld" id="crAddr" placeholder="選填" autocomplete="off"></div>
-        <div class="fr col"><label>場地</label><div class="opts" data-key="venue"><button type="button" data-v="室內">室內</button><button type="button" data-v="戶外">戶外</button></div></div>
+        <div class="fr col"><label>場地</label><div class="opts" role="radiogroup" aria-label="場地" data-key="venue"><button type="button" role="radio" data-v="室內">室內</button><button type="button" role="radio" data-v="戶外">戶外</button></div></div>
         <div class="fr col" id="rowRain" hidden><label for="crRain">雨天備案</label><input class="fld" id="crRain" placeholder="例如：改到附近咖啡廳" autocomplete="off"></div>
       </div>
 
@@ -1964,24 +2047,24 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 
       <div class="glbl"><i>5</i>費用</div>
       <div class="frm">
-        <div class="fr col"><label id="crFeeLbl">收費方式</label><div class="opts" data-key="feeType"><button type="button" data-v="free">免費</button><button type="button" data-v="aa">AA 制</button><button type="button" data-v="split" hidden>各付各的</button><button type="button" data-v="treat" hidden>I buy U</button><button type="button" data-v="swap" hidden>禮尚往來</button><button type="button" data-v="fixed">每人固定</button></div></div>
-        <div class="fr col" id="rowAmt" hidden><label for="crAmt" id="crAmtLbl">每人</label><span class="amt"><em>NT$</em><input class="fld" id="crAmt" type="text" inputmode="numeric" maxlength="6" placeholder="0" autocomplete="off"></span><div class="opts quick" id="crAmtQ"><button type="button" data-amt="100">100</button><button type="button" data-amt="200">200</button><button type="button" data-amt="300">300</button><button type="button" data-amt="500">500</button></div></div>
+        <div class="fr col"><label id="crFeeLbl">收費方式</label><div class="opts" role="radiogroup" aria-label="收費方式" data-key="feeType"><button type="button" role="radio" data-v="free">免費</button><button type="button" role="radio" data-v="aa">AA 制</button><button type="button" role="radio" data-v="split" hidden>各付各的</button><button type="button" role="radio" data-v="treat" hidden>I buy U</button><button type="button" role="radio" data-v="swap" hidden>禮尚往來</button><button type="button" role="radio" data-v="fixed">每人固定</button></div></div>
+        <div class="fr col" id="rowAmt" hidden><label for="crAmt" id="crAmtLbl">每人</label><span class="amt"><em>NT$</em><input class="fld" id="crAmt" type="text" inputmode="numeric" maxlength="6" placeholder="0" autocomplete="off"></span><div class="opts quick" id="crAmtQ" role="radiogroup" aria-label="常用金額"><button type="button" role="radio" data-amt="100">100</button><button type="button" role="radio" data-amt="200">200</button><button type="button" role="radio" data-amt="300">300</button><button type="button" role="radio" data-amt="500">500</button></div></div>
         <div class="fr col" id="rowInc" hidden><label for="crInc">費用包含 <span class="opt">選填</span></label><input class="fld" id="crInc" placeholder="場地、器材、飲料…" autocomplete="off"></div>
-        <div class="fr col" id="rowPay" hidden><label>付款</label><div class="opts" data-key="pay"><button type="button" data-v="cash">現場付給團主</button><button type="button" data-v="online">線上預付</button></div></div>
-        <div class="fr col" id="rowRefund" hidden><label>退費</label><div class="opts" data-key="refund"><button type="button" data-v="24h">24 小時前全退</button><button type="button" data-v="72h">72 小時前全退</button><button type="button" data-v="half">7 天前退一半</button><button type="button" data-v="none">不退費</button></div></div>
+        <div class="fr col" id="rowPay" hidden><label>付款</label><div class="opts" role="radiogroup" aria-label="付款" data-key="pay"><button type="button" role="radio" data-v="cash">現場付給團主</button><button type="button" role="radio" data-v="online">線上預付</button></div></div>
+        <div class="fr col" id="rowRefund" hidden><label>退費</label><div class="opts" role="radiogroup" aria-label="退費" data-key="refund"><button type="button" role="radio" data-v="24h">24 小時前全退</button><button type="button" role="radio" data-v="72h">72 小時前全退</button><button type="button" role="radio" data-v="half">7 天前退一半</button><button type="button" role="radio" data-v="none">不退費</button></div></div>
       </div>
 
       <div class="glbl"><i>6</i>誰可以來</div>
       <div class="frm">
-        <div class="fr col"><label>程度</label><div class="opts" data-key="level"><button type="button" data-v="新手友善">新手友善</button><button type="button" data-v="有點經驗">有點經驗</button><button type="button" data-v="進階">進階</button></div></div>
-        <div class="fr col"><label>年齡</label><div class="opts" data-key="age"><button type="button" data-v="不限">不限</button><button type="button" data-v="18+">18 歲以上</button></div></div>
+        <div class="fr col"><label>程度</label><div class="opts" role="radiogroup" aria-label="程度" data-key="level"><button type="button" role="radio" data-v="新手友善">新手友善</button><button type="button" role="radio" data-v="有點經驗">有點經驗</button><button type="button" role="radio" data-v="進階">進階</button></div></div>
+        <div class="fr col"><label>年齡</label><div class="opts" role="radiogroup" aria-label="年齡" data-key="age"><button type="button" role="radio" data-v="不限">不限</button><button type="button" role="radio" data-v="18+">18 歲以上</button></div></div>
         <div class="fr sw"><span class="lb">只限實名驗證<small>對方要先完成手機和身分驗證</small></span><input type="checkbox" role="switch" id="crVerified" aria-label="只限實名驗證"></div>
         <div class="fr sw"><span class="lb">女性限定<small>只有女性會員看得到、可以加入</small></span><input type="checkbox" role="switch" id="crWomen" aria-label="女性限定"></div>
       </div>
 
       <div class="glbl"><i>7</i>安全</div>
       <div class="frm">
-        <div class="fr col"><label>活動強度</label><div class="opts risk" data-key="risk"><button type="button" data-v="low">輕鬆</button><button type="button" data-v="mid">中等</button><button type="button" data-v="high">高風險</button></div><small class="hint" id="crRiskTxt"></small></div>
+        <div class="fr col"><label>活動強度</label><div class="opts risk" role="radiogroup" aria-label="活動強度" data-key="risk"><button type="button" role="radio" data-v="low">輕鬆</button><button type="button" role="radio" data-v="mid">中等</button><button type="button" role="radio" data-v="high">高風險</button></div><small class="hint" id="crRiskTxt"></small></div>
         <div class="fr col" id="rowGear" hidden><label for="crGear">必備裝備</label><input class="fld" id="crGear" placeholder="頭燈、雨衣、2L 水…" autocomplete="off"></div>
         <div class="fr sw" id="rowEmg" hidden><span class="lb">參加者要填緊急聯絡人<small>只有你在活動當天看得到</small></span><input type="checkbox" role="switch" id="crEmg" aria-label="參加者要填緊急聯絡人"></div>
         <div class="fr sw" id="rowIns" hidden><span class="lb">提醒參加者自行投保<small>報名時會顯示旅平險／登山險提醒</small></span><input type="checkbox" role="switch" id="crIns" aria-label="提醒自行投保"></div>
@@ -1991,7 +2074,7 @@ input[role="switch"]{border-radius:999px!important}input[role="switch"]::after{b
 
       <div class="glbl"><i>8</i>公開範圍</div>
       <div class="frm">
-        <div class="fr col"><label>誰看得到</label><div class="opts" data-key="vis"><button type="button" data-v="公開">所有人</button><button type="button" data-v="追蹤者">我的追蹤者</button><button type="button" data-v="連結">有連結的人</button></div></div>
+        <div class="fr col"><label>誰看得到</label><div class="opts" role="radiogroup" aria-label="誰看得到" data-key="vis"><button type="button" role="radio" data-v="公開">所有人</button><button type="button" role="radio" data-v="追蹤者">我的追蹤者</button><button type="button" role="radio" data-v="連結">有連結的人</button></div></div>
         <div class="fr sw"><span class="lb">自動建立群組聊天<small>有人加入就拉進群組</small></span><input type="checkbox" role="switch" id="crGroup" checked aria-label="自動建立群組"></div>
       </div>
 
@@ -2232,7 +2315,7 @@ const SEEDX={
   8:{dur:180,minN:5,o:{level:'有點經驗',age:'18+',pay:'online',refund:'72h',inc:'含一杯飲料',deadline:'180'}},
   9:{dur:360,minN:4,o:{age:'18+',risk:'high',venue:'戶外',gear:'溯溪鞋、換洗衣物、防水袋',emg:true,ins:true,wx:true,rain:'大雨或水位上升時取消',pay:'online',refund:'72h',verified:true,approve:true,deadline:'1440'}}
 };
-acts.forEach(a=>{const x=SEEDX[a.id];if(!x)return;a.end=a.start+x.dur*6e4;a.minN=x.minN;if(x.n!=null)a.n=x.n;if(x.wl)a.wl=x.wl;if(x.reqs)a.reqs=x.reqs;a.opts=x.o;});
+acts.forEach(a=>{const x=SEEDX[a.id];if(!x)return;a.end=a.start+x.dur*6e4;a.minN=x.minN;if(x.n!=null)a.n=x.n;if(x.wl)a.wl=x.wl;if(x.reqs)a.reqs=x.reqs;a.opts=x.o;if([3,8,9].includes(a.id))a.hostVerified=true;});
 const optsOf=a=>Object.assign({},OPT0,a.opts||{});
 const endOf=a=>a.end||a.start+120*6e4;
 const feeKind=a=>a.fee==='免費'||/^I buy U/.test(a.fee)?'free':/^AA|自付|各付各的|禮尚往來/.test(a.fee)?'aa':'fixed';
@@ -2255,7 +2338,7 @@ const byId=id=>{
 const joined=new Set([5]),saved=new Set([4]),follows=new Set(['林子晴','許書豪']),cmLiked=new Set();
 const pending=new Set(),waitl=new Set();   /* applied (waiting for host) / on the waiting list */
 let myEmg={name:'',phone:'',rel:'家人'};   /* saved once, reused for the next high-risk event */
-const st={tab:'home',seg:'all',fresh:null,f:{cats:new Set(),fee:'any',risk:'any',seats:false,noapp:false,newbie:false}};
+const st={tab:'home',seg:'all',fresh:null,f:{cats:new Set(),fee:'any',risk:'any',seats:false,noapp:false,newbie:false,verified:false}};
 /* ----- feature modules (feat/*.js) plug into these slots instead of editing the screens ----- */
 const FX={state:[],pill:[],tap:[],promote:[],rated:[],host:[],click:[],hide:[],count:[],needSheet:[],joinForm:[],joinMiss:[],joinInfo:[],joined:[],left:[],post:[],crOpts:[],boot:[],
   homeTop:[],homeMid:[],detailTop:[],detailMid:[],detailEnd:[],chatTop:[],meTop:[],meMid:[],meEnd:[],room:[]};
@@ -2281,8 +2364,8 @@ const passF=a=>{const f=st.f,o=optsOf(a);
   if(f.cats.size&&!f.cats.has(a.cat))return false;
   if(f.fee==='free'&&feeKind(a)!=='free')return false;if(f.fee==='paid'&&feeKind(a)==='free')return false;
   if(f.risk!=='any'&&o.risk!==f.risk)return false;
-  if(f.seats&&left(a)<=0)return false;if(f.noapp&&o.approve)return false;if(f.newbie&&o.level!=='新手友善')return false;return true;};
-const fCount=()=>{const f=st.f;return (f.fee!=='any')+(f.risk!=='any')+f.seats+f.noapp+f.newbie;};
+  if(f.seats&&left(a)<=0)return false;if(f.noapp&&o.approve)return false;if(f.newbie&&o.level!=='新手友善')return false;if(f.verified&&!a.hostVerified)return false;return true;};
+const fCount=()=>{const f=st.f;return (f.fee!=='any')+(f.risk!=='any')+f.seats+f.noapp+f.newbie+!!f.verified;};
 const fAny=()=>fCount()>0||st.f.cats.size>0;
 const people=(a,k)=>Array.from({length:k},(_,i)=>PEOPLE[(a.id*5+i*7)%PEOPLE.length]);
 const headline=a=>{const i=a.title.indexOf('，');return i>0?[a.title.slice(0,i),a.title.slice(i+1)]:[a.title,''];};
@@ -2419,8 +2502,8 @@ function renderHome(){
 
     <div class="sh rv"><h2>全部活動</h2><span class="more tnum">${list.length} 場</span></div>
     <div class="seg rv" role="tablist" style="--ix:${['all','today','weekend'].indexOf(st.seg)}">${[['all','全部'],['today','今天'],['weekend','週末']].map(([k,n])=>`<button role="tab" data-seg="${k}" aria-selected="${st.seg===k}">${n}</button>`).join('')}</div>
-    <div class="fbar rv"><button class="fbtn${fn?' on':''}" data-open="filter" aria-label="篩選">${IC.filter}篩選${fn?`<i>${fn}</i>`:''}</button><div class="kinds fk" role="group" aria-label="類型">${Object.entries(CATN).map(([k,n])=>`<button data-fcat="${k}" aria-checked="${st.f.cats.has(k)}">${n}</button>`).join('')}</div></div>
-    ${list.length?`<div class="group rv" id="allList">${list.map(cellHTML).join('')}</div>`:fAny()?`<p class="empty"><b>沒有符合的活動</b>放寬條件看看。<button class="lnk2" data-fclear>清除篩選</button></p>`:`<p class="empty"><b>今天沒有活動</b>換個時段看看，或自己發起一團。</p>`}
+    <div class="fbar rv"><button class="fbtn${fn?' on':''}" data-open="filter" aria-label="篩選">${IC.filter}篩選${fn?`<i>${fn}</i>`:''}</button><div class="kinds fk" role="group" aria-label="類型">${Object.entries(CATN).map(([k,n])=>`<button role="checkbox" data-fcat="${k}" aria-checked="${st.f.cats.has(k)}">${n}</button>`).join('')}</div></div>
+    ${list.length?`<div class="group rv" id="allList">${list.map(cellHTML).join('')}</div>`:fAny()?`<p class="empty"><b>沒有符合的活動</b>放寬條件看看。<button class="lnk2" data-fclear>清除篩選</button></p>`:`<p class="empty"><b>今天沒有活動</b>換個時段看看，或自己發起一團。<button class="lnk2" data-open="create">發起一團</button></p>`}
     <p class="foot rv">加入後才會看到精確的集合地點。</p>
     <div class="pad-b"></div>`;
   settle($('#homeBody'));
@@ -2583,7 +2666,7 @@ function riskCard(a){
   if(o.gear)L.push([IC.check,`<b>必備裝備</b>${esc(o.gear)}`]);
   if(needEmg(a))L.push([IC.users,`<b>緊急聯絡人</b>加入時要填寫，只有團主在活動當天看得到`+(joined.has(a.id)&&myEmg.name?`（你登記的是 ${esc(myEmg.name)}）`:'')]);
   if(o.ins)L.push([IC.warn,`<b>保險</b>活動不含保險，請自行投保旅平險或登山險`]);
-  return `<div class="riskc ${o.risk} rv"><span class="eb">活動強度</span><h3>${RLV[o.risk]}</h3><p>${esc(RISK[o.risk])}</p>${L.length?`<ul>${L.map(([i,t])=>`<li><span class="ri">${i}</span><span>${t}</span></li>`).join('')}</ul>`:''}</div>`;
+  return `<div class="riskc ${o.risk} rv"><span class="eb">活動強度</span><h2>${RLV[o.risk]}</h2><p>${esc(RISK[o.risk])}</p>${L.length?`<ul>${L.map(([i,t])=>`<li><span class="ri">${i}</span><span>${t}</span></li>`).join('')}</ul>`:''}</div>`;
 }
 function infoGroup(a){
   const o=optsOf(a),e=endOf(a),cnt=count(a),mn=a.minN||2,R=[];
@@ -2730,6 +2813,8 @@ function crReset(){
   [['#crWait',1],['#crApprove',0],['#crVerified',0],['#crWomen',0],['#crEmg',0],['#crIns',0],['#crWx',0],['#crShare',1],['#crGroup',1],['#crAgree',0]].forEach(([q,v])=>{$(q).checked=!!v;$(q).disabled=false;});
 }
 function renderCreate(){
+  /* option rows that features add (e.g. plusone) get the same roles as the built-in ones */
+  $$('#sh-create .opts[data-key]').forEach(g=>{if(!g.getAttribute('role'))g.setAttribute('role','radiogroup');g.querySelectorAll('button:not([role])').forEach(b=>b.setAttribute('role','radio'));});
   $('#crCats').innerHTML=Object.entries(CATN).map(([k,n])=>`<button type="button" role="radio" aria-checked="${crCat===k}" data-crcat="${k}">${n}</button>`).join('');
   $('#crDays').innerHTML=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i);const w=d.getDay();
     return `<button type="button" role="radio" data-day="${i}" class="${w===0||w===6?'we':''}"><small>${i===0?'今天':i===1?'明天':ZH[w]}</small><b class="tnum">${d.getDate()}</b><small>${d.getMonth()+1}月</small></button>`;}).join('');
@@ -2846,7 +2931,7 @@ function openJoin(id,s){
     ${emg?`<div class="glbl2">緊急聯絡人</div><div class="frm">
       <div class="fr"><label for="jnName">姓名</label><input class="fld" id="jnName" maxlength="12" autocomplete="name" placeholder="聯絡人姓名" value="${esc(myEmg.name)}"></div>
       <div class="fr"><label for="jnPhone">手機</label><input class="fld" id="jnPhone" type="tel" inputmode="tel" maxlength="12" autocomplete="tel" placeholder="09xx xxx xxx" value="${esc(myEmg.phone)}"></div>
-      <div class="fr"><label>關係</label><div class="opts" id="jnRel">${['家人','伴侶','朋友','其他'].map(r=>`<button type="button" data-jrel="${r}" aria-checked="${r===jn.rel}">${r}</button>`).join('')}</div></div></div>
+      <div class="fr"><label>關係</label><div class="opts" id="jnRel" role="radiogroup" aria-label="關係">${['家人','伴侶','朋友','其他'].map(r=>`<button type="button" role="radio" data-jrel="${r}" aria-checked="${r===jn.rel}">${r}</button>`).join('')}</div></div></div>
       <p class="hint pad">只有團主在活動當天看得到，活動結束後會自動刪除。</p>`:''}
     ${gear||o.ins||on?`<div class="glbl2">出發前確認</div><div class="frm">
       ${gear?`<label class="fr ck"><input type="checkbox" id="jnGear"><span>我會自備：<b>${esc(o.gear)}</b></span></label>`:''}
@@ -2900,12 +2985,12 @@ function renderRate(){
   const came=Object.values(rv.st).filter(s=>s==='in').length;
   $('#rateIn').innerHTML=`<div class="shh"><button class="l" data-close>稍後</button><h2>${guest?'活動回饋':'確認出席'}</h2><span></span></div>
     <div class="jhd">${chip(p.cat,46)}<span><b>${esc(p.title)}</b><small>${dayTxt(p.start)} ${hm(p.start)}–${hm(e)} · ${esc(p.place)} · 已結束</small></span></div>
-    ${guest?`<div class="glbl2">你有到嗎？</div><div class="frm"><div class="fr"><div class="opts">${[['yes','有到'],['no','沒去成']].map(([k,t])=>`<button type="button" data-rvat="${k}" aria-checked="${rv.at===k}">${t}</button>`).join('')}</div></div></div>
-      ${rv.at==='yes'?`<div class="glbl2">團主 ${esc(p.host)}</div><div class="frm"><div class="fr"><div class="stars" role="radiogroup" aria-label="給團主幾顆星">${[1,2,3,4,5].map(i=>`<button type="button" data-rvstar="${i}" aria-checked="${rv.star===i}" class="${i<=rv.star?'on':''}" aria-label="${i} 顆星">★</button>`).join('')}</div>
-        <div class="opts">${RVTAG.map(t=>`<button type="button" data-rvtag="${t}" aria-checked="${rv.tags.has(t)}">${t}</button>`).join('')}</div></div></div>
+    ${guest?`<div class="glbl2">你有到嗎？</div><div class="frm"><div class="fr"><div class="opts" role="radiogroup" aria-label="你有到嗎">${[['yes','有到'],['no','沒去成']].map(([k,t])=>`<button type="button" role="radio" data-rvat="${k}" aria-checked="${rv.at===k}">${t}</button>`).join('')}</div></div></div>
+      ${rv.at==='yes'?`<div class="glbl2">團主 ${esc(p.host)}</div><div class="frm"><div class="fr"><div class="stars" role="radiogroup" aria-label="給團主幾顆星">${[1,2,3,4,5].map(i=>`<button type="button" role="radio" data-rvstar="${i}" aria-checked="${rv.star===i}" class="${i<=rv.star?'on':''}" aria-label="${i} 顆星">★</button>`).join('')}</div>
+        <div class="opts" role="group" aria-label="團主的優點">${RVTAG.map(t=>`<button type="button" role="checkbox" data-rvtag="${t}" aria-checked="${rv.tags.has(t)}">${t}</button>`).join('')}</div></div></div>
         <div class="glbl2">下次還想一起去的人 <span class="opt">選填</span></div><div class="frm">${ppl.map(row).join('')}</div>
         <p class="hint pad">推薦只會讓對方知道「有人想再跟你一起去」，不會顯示是誰。</p>`:''}
-      ${rv.at==='no'?`<div class="glbl2">沒去成的原因</div><div class="frm"><div class="fr"><div class="opts">${RVWHY.map(t=>`<button type="button" data-rvwhy="${t}" aria-checked="${rv.why===t}">${t}</button>`).join('')}</div></div></div>
+      ${rv.at==='no'?`<div class="glbl2">沒去成的原因</div><div class="frm"><div class="fr"><div class="opts" role="radiogroup" aria-label="沒去成的原因">${RVWHY.map(t=>`<button type="button" role="radio" data-rvwhy="${t}" aria-checked="${rv.why===t}">${t}</button>`).join('')}</div></div></div>
         <p class="hint pad">團主會再確認一次。事先在群組說一聲的，會記成請假，不扣出席率。</p>`:''}`
     :`<div class="glbl2">誰有到？ <span class="opt">${p.ppl.length} 人中 ${came} 人到</span></div><div class="frm">${ppl.map(row).join('')}</div>
       <p class="hint pad">點狀態切換：有到 → 請假 → 沒到。只有「沒到」會影響對方的出席率。</p>`}
@@ -2935,10 +3020,10 @@ const FOPT={fee:[['any','不限'],['free','免費'],['paid','收費']],risk:[['a
 function renderFilter(){
   const f=st.f,n=vacts().filter(a=>(st.seg==='all'||(st.seg==='today'?dayDiff(a.start)===0:isWeekend(a.start)))&&passF(a)).length;
   $('#filterIn').innerHTML=`<div class="shh"><button class="l" data-fclear>清除</button><h2>篩選</h2><button class="r" data-close>完成</button></div>
-    <div class="glbl2">費用</div><div class="frm"><div class="fr"><div class="opts">${FOPT.fee.map(([k,t])=>`<button type="button" data-ffee="${k}" aria-checked="${f.fee===k}">${t}</button>`).join('')}</div></div></div>
-    <div class="glbl2">活動強度</div><div class="frm"><div class="fr"><div class="opts">${FOPT.risk.map(([k,t])=>`<button type="button" data-frisk="${k}" aria-checked="${f.risk===k}">${t}</button>`).join('')}</div></div></div>
+    <div class="glbl2">費用</div><div class="frm"><div class="fr"><div class="opts" role="radiogroup" aria-label="費用">${FOPT.fee.map(([k,t])=>`<button type="button" role="radio" data-ffee="${k}" aria-checked="${f.fee===k}">${t}</button>`).join('')}</div></div></div>
+    <div class="glbl2">活動強度</div><div class="frm"><div class="fr"><div class="opts" role="radiogroup" aria-label="活動強度">${FOPT.risk.map(([k,t])=>`<button type="button" role="radio" data-frisk="${k}" aria-checked="${f.risk===k}">${t}</button>`).join('')}</div></div></div>
     <div class="glbl2">其他</div><div class="frm">
-      ${[['seats','只看還有名額'],['noapp','不需要團主同意'],['newbie','新手友善']].map(([k,t])=>`<label class="fr sw"><span class="lb">${t}</span><input type="checkbox" role="switch" data-ftog="${k}" ${f[k]?'checked':''}></label>`).join('')}</div>
+      ${[['seats','只看還有名額'],['noapp','不需要團主同意'],['newbie','新手友善'],['verified','只看已驗證團主']].map(([k,t])=>`<label class="fr sw"><span class="lb">${t}</span><input type="checkbox" role="switch" data-ftog="${k}" ${f[k]?'checked':''}></label>`).join('')}</div>
     <div class="sfoot"><button class="cta" data-close>看 ${n} 場結果</button></div>`;
 }
 $('#sh-filter').addEventListener('change',e=>{const k=e.target.dataset.ftog;if(!k)return;st.f[k]=e.target.checked;renderFilter();renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));});
@@ -2963,7 +3048,7 @@ document.addEventListener('click',e=>{
   else if(d.fcat){const c=st.f.cats;c.has(d.fcat)?c.delete(d.fcat):c.add(d.fcat);renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));}
   else if(d.ffee){st.f.fee=d.ffee;renderFilter();renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));}
   else if(d.frisk){st.f.risk=d.frisk;renderFilter();renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));}
-  else if(d.fclear!==undefined){st.f={cats:new Set(),fee:'any',risk:'any',seats:false,noapp:false,newbie:false};if(openSheet&&openSheet.id==='sh-filter')renderFilter();renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));}
+  else if(d.fclear!==undefined){st.f={cats:new Set(),fee:'any',risk:'any',seats:false,noapp:false,newbie:false,verified:false};if(openSheet&&openSheet.id==='sh-filter')renderFilter();renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));}
   else if(d.jgo!==undefined){doJoin();}
   else if(d.rate){openRate(+d.rate);}
   else if(d.rvgo!==undefined){doRate();}
@@ -3073,6 +3158,157 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     fail(e){toast(e&&e.message||'操作沒有成功');return false;}
   };
   window.TG_API=api;
+})();
+
+/* ===== feat/01share ===== */
+/* ===== feat/01share: 分享、深連結、加到行事曆、分享行程給朋友、已結束／即將開始、PWA 註冊 (prefix shr) =====
+   Sorts right after 00api so its boot runs before linelogin's (which wipes the query on the way back from LINE): a pasted
+   ?e=<id> is stashed at load, a #e=<id> survives anyway. Deep link = https://ademczw.github.io/tagalong/#e=<server id or
+   local id>. Share: navigator.share -> clipboard (toast 已複製連結) -> a sheet with the text selected. Nothing here edits ui.js:
+   data-share is intercepted in FX.click, renderMe is wrapped by name for the ticket buttons. */
+(()=>{
+  const SITE='https://ademczw.github.io/tagalong/',HOST='ademczw.github.io',EK='tg-share-e',A2K='tg-shr-a2hs';
+  const cfg={wait:8000,step:500};
+  const ls={get:k=>{try{return localStorage.getItem(k);}catch(e){return null;}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}};
+  const ss={get:k=>{try{return sessionStorage.getItem(k);}catch(e){return null;}},set:(k,v)=>{try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v);}catch(e){}}};
+
+  /* ----- deep link: read ?e= / #e= now, before anything rewrites the URL ----- */
+  const readE=()=>{try{const h=/[#&]e=([^&]+)/.exec(location.hash),q=new URLSearchParams(location.search).get('e');return h?decodeURIComponent(h[1]):q||null;}catch(e){return null;}};
+  let pend=readE();
+  if(pend)ss.set(EK,pend);else pend=ss.get(EK);
+  const clearUrl=()=>{try{const q=new URLSearchParams(location.search);q.delete('e');const s=q.toString();history.replaceState(null,'',location.pathname+(s?'?'+s:''));}catch(e){}};
+  const inActs=id=>{if(/^\d+$/.test(id)){let a=byId(+id);if(!a&&+id>300&&+id<400&&typeof posterSeedDates==='function'){try{posterSeedDates();}catch(e){}a=byId(+id);}return a||null;}
+    return acts.find(a=>a.sid===id)||null;};
+  function show(a){
+    const c=$('.pcover');if(c)c.remove();$('#phone').classList.remove('pcv');
+    if(a.dating&&typeof posterMode!=='undefined'&&posterMode!=='date'&&typeof posterSetMode==='function')posterSetMode('date');
+    openDetail(a.id);
+  }
+  /* opens the event behind the pending id; a server id may arrive late (sync_events loads after boot), so look again for a while */
+  function fromUrl(id){
+    id=id||readE()||pend;if(!id)return false;pend=null;ss.set(EK,null);clearUrl();
+    const t0=Date.now();
+    const tryOpen=()=>{const a=inActs(id);
+      if(a){show(a);return;}   /* a server row already carries its local id (sync_events taught TG_API.ids the pair) */
+      if(Date.now()-t0<cfg.wait)setTimeout(tryOpen,cfg.step);else toast('找不到這個活動');};
+    tryOpen();return true;
+  }
+
+  /* ----- sharing ----- */
+  const link=a=>SITE+'#e='+encodeURIComponent(a.sid||a.id);
+  const text=a=>`${a.title}｜${whenLabel(a.start)} ${hm(a.start)}｜${a.place}`;
+  const inn=a=>joined.has(a.id)||!!a.mine;
+  $('#sh-filter').insertAdjacentHTML('beforebegin','<section class="sheet short form" id="sh-shr" role="dialog" aria-modal="true" aria-label="分享"><div class="grab"></div><div class="sheet-in" id="shrIn"></div></section>'
+    +'<section class="sheet short form" id="sh-shrcal" role="dialog" aria-modal="true" aria-label="加到行事曆"><div class="grab"></div><div class="sheet-in" id="shrCalIn"></div></section>');
+  /* last resort: the text in a box, already selected */
+  function box(t,title){
+    $('#shrIn').innerHTML=`<div class="shh"><span></span><h2>${title||'分享'}</h2><button class="r" data-close>完成</button></div>
+      <p class="hint pad">沒辦法自動複製，長按文字就能複製。</p><div class="shr-bx"><textarea class="fld shr-ta" readonly aria-label="分享內容">${esc(t)}</textarea></div>`;
+    showSheet('#sh-shr');const ta=$('#shrIn .shr-ta');try{ta.focus();ta.select();}catch(e){}
+  }
+  /* share -> clipboard -> box; returns which one happened ('cancel' when the user closed the share sheet) */
+  async function share(d,ok){
+    const t=d.text&&d.url?d.text+'\n'+d.url:d.text||d.url||'';
+    if(navigator.share){try{await navigator.share(d);return 'share';}catch(e){if(e&&e.name==='AbortError')return 'cancel';}}
+    if(navigator.clipboard&&navigator.clipboard.writeText){try{await navigator.clipboard.writeText(t);toast(ok||'已複製連結');return 'copy';}catch(e){}}
+    box(t,d.title);return 'box';
+  }
+  const shareEvent=a=>share({title:a.title,text:text(a),url:link(a)});
+  /* 把行程分享給朋友: when, where (address only once you are in), who, and that you will report back */
+  const planFor=a=>{const o=optsOf(a);return !!(a.dating||o.risk!=='low'||o.emg)&&['in','pending','wait'].includes(jstate(a));};
+  const planText=a=>`我 ${dayTxt(a.start)} ${hm(a.start)} 會去「${a.title}」，地點 ${a.place}${inn(a)&&a.addr&&a.addr!==a.place?`（${a.addr}）`:''}，${a.dating?'對方':'團主'} ${a.dating&&a.who?a.who:a.host}。活動結束我會報平安。`;
+  const sharePlan=a=>share({title:'我的行程',text:planText(a)},'已複製行程');
+
+  /* ----- calendar ----- */
+  const z=t=>new Date(t).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const icsEsc=s=>String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+  const fold=l=>{let o='';while(l.length>70){o+=l.slice(0,70)+'\r\n ';l=l.slice(70);}return o+l;};
+  const loc=a=>a.place+(inn(a)&&a.addr&&a.addr!==a.place?'，'+a.addr:'');
+  const desc=a=>`${a.dating?'對方':'團主'} ${a.dating&&a.who?a.who:a.host} · ${a.fee}`;
+  function ics(a){
+    const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tagalong//Tagalong//ZH','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+      `UID:${a.sid||a.id}@tagalong`,`DTSTAMP:${z(Date.now())}`,`DTSTART:${z(a.start)}`,`DTEND:${z(endOf(a))}`,`SUMMARY:${icsEsc(a.title)}`,`LOCATION:${icsEsc(loc(a))}`,
+      `DESCRIPTION:${icsEsc(desc(a))}`,`URL:${link(a)}`,'END:VEVENT','END:VCALENDAR'];
+    return L.map(fold).join('\r\n')+'\r\n';
+  }
+  const gcal=a=>'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(a.title)+'&dates='+z(a.start)+'/'+z(endOf(a))
+    +'&details='+encodeURIComponent(desc(a)+'\n'+link(a))+'&location='+encodeURIComponent(loc(a));
+  async function offerIcs(a){
+    const t=ics(a),name='tagalong-'+(a.sid||a.id)+'.ics';
+    if(navigator.share&&typeof File==='function'){
+      try{const f=new File([t],name,{type:'text/calendar'});
+        if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:a.title});closeSheet();return 'share';}}
+      catch(e){if(e&&e.name==='AbortError')return 'cancel';}
+    }
+    if(typeof URL!=='undefined'&&URL.createObjectURL){
+      const u=URL.createObjectURL(new Blob([t],{type:'text/calendar;charset=utf-8'})),l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();
+      setTimeout(()=>URL.revokeObjectURL(u),6e4);closeSheet();toast('已下載行事曆檔');return 'download';
+    }
+    box(t,'行事曆');return 'box';
+  }
+  function openCal(id){
+    const a=byId(id);if(!a)return;
+    $('#shrCalIn').innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>加到行事曆</h2><span></span></div>
+      <div class="jhd">${chip(a.cat,46)}<span><b>${esc(headline(a)[0])}</b><small>${dayTxt(a.start)} ${hm(a.start)}–${hm(endOf(a))} · ${esc(a.place)}</small></span></div>
+      <div class="glbl2">選一個</div><div class="group shr-cal">
+        <button class="cell" data-shr-ics="${a.id}"><span class="shr-ic">${IC.clock}</span><span style="min-width:0"><b>Apple 行事曆</b><small>下載 .ics，也能匯入 Outlook</small></span><span class="chev">›</span></button>
+        <a class="cell" href="${gcal(a)}" target="_blank" rel="noopener" data-shr-g="${a.id}"><span class="shr-ic shr-g">G</span><span style="min-width:0"><b>Google 日曆</b><small>在瀏覽器開啟 Google 日曆</small></span><span class="chev">›</span></a>
+      </div><p class="hint pad">${inn(a)?'已加入，集合地址會一起寫進去。':'加入後，集合地址才會一起寫進去。'}</p><div style="height:20px"></div>`;
+    showSheet('#sh-shrcal');
+  }
+
+  /* ----- event page rows ----- */
+  FX.detailMid.push(a=>`<div class="sh rv"><h2>出發前</h2></div><div class="group rv shr-rows">
+    <button class="cell" data-shr-cal="${a.id}"><span class="shr-ic">${IC.clock}</span><span style="min-width:0"><b>加到行事曆</b><small>${dayTxt(a.start)} ${hm(a.start)}–${hm(endOf(a))}</small></span><span class="chev">›</span></button>
+    ${planFor(a)?`<button class="cell" data-shr-plan="${a.id}"><span class="shr-ic">${IC.share}</span><span style="min-width:0"><b>把行程分享給朋友</b><small>時間、地點和${a.dating?'對方':'團主'}，讓朋友知道你在哪</small></span><span class="chev">›</span></button>`:''}
+  </div>`);
+  FX.joined.push(a=>{if(planFor(a))setTimeout(()=>toast('記得把行程分享給朋友'),2000);});
+
+  /* ----- ended / starting soon / in progress ----- */
+  const phase=a=>{const n=Date.now();return endOf(a)<n?'ended':a.start<=n?'live':a.start-n<=60*6e4?'soon':'';};
+  const stateFn=a=>phase(a)==='ended'&&!FX.state.some(f=>f!==stateFn&&f(a)==='cancelled')?'ended':'';
+  FX.state.push(stateFn);
+  FX.pill.push((a,s,kind,cls)=>s!=='ended'?'':kind==='mini'?'<button class="mini shr-end" disabled>已結束</button>':`<button class="pill shr-end ${cls||''}" disabled>已結束</button>`);
+  FX.tap.push((a,s)=>s==='ended');
+  FX.detailTop.push(a=>{
+    const p=phase(a);if(!p||jstate(a)==='cancelled')return '';
+    if(p==='ended')return `<div class="stbar rv shr-ph" data-shr-ph="ended"><span class="si">${IC.check}</span><span><b>已結束</b><small>${dayTxt(a.start)} ${hm(a.start)}–${hm(endOf(a))}，活動已經結束。</small></span></div>`;
+    if(p==='live')return `<div class="stbar rv shr-ph shr-live" data-shr-ph="live"><span class="si">${IC.clock}</span><span><b>進行中</b><small>${hm(a.start)} 開始，預計 ${hm(endOf(a))} 結束。</small></span></div>`;
+    return `<div class="stbar rv shr-ph shr-soon" data-shr-ph="soon" data-stk-k="shr" data-stk-p="3" data-stk-s="即將開始，還有 ${until(a.start)}"><span class="si">${IC.clock}</span><span><b>即將開始</b><small>還有 <span class="tnum" data-until="${a.id}">${until(a.start)}</span> · ${hm(a.start)} 在${esc(a.place)}</small></span></div>`;
+  });
+  /* the line follows the clock: soon -> live -> ended while the page stays open */
+  try{liveEvery(30000,()=>{const a=curDetail!=null&&byId(curDetail);if(!a||!ovOpen('#o-detail'))return;const el=$('#detailIn [data-shr-ph]');if((el?el.dataset.shrPh:'')!==phase(a))refresh();});}catch(e){}
+
+  /* ----- iOS 加到主畫面 hint (deployed site only, Safari, not yet installed, shown once) ----- */
+  const ios=()=>{const n=navigator,ua=n.userAgent||'';return location.hostname===HOST&&/iP(hone|ad|od)/.test(ua)&&/Safari/.test(ua)&&!/CriOS|FxiOS|Line\//.test(ua)&&!n.standalone&&!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);};
+  let a2hs=false;
+  FX.homeTop.push(()=>a2hs?`<div class="shr-a2hs rv" data-shr-a2hs><span class="shr-ic">${IC.share}</span><span style="min-width:0"><b>加到主畫面</b><small>按 Safari 下方的分享，選「加入主畫面」，就能像 App 一樣打開。</small></span><button class="shr-x" data-shr-a2hs-x aria-label="關閉">×</button></div>`:'');
+
+  FX.click.push((b,d)=>{
+    if(d.share!==undefined&&+d.share){const a=byId(+d.share);if(a)shareEvent(a);return true;}
+    if(d.shrPlan){const a=byId(+d.shrPlan);if(a)sharePlan(a);return true;}
+    if(d.shrCal){openCal(+d.shrCal);return true;}
+    if(d.shrIcs){const a=byId(+d.shrIcs);if(a)offerIcs(a);return true;}
+    if(d.shrA2hsX!==undefined){a2hs=false;const el=$('[data-shr-a2hs]');if(el)el.remove();return true;}
+    return false;
+  });
+
+  FX.boot.push(()=>{
+    /* the poster theme folds detail sections behind their titles; these two rows should be seen, so the section starts open */
+    try{posterOpen.add('出發前');}catch(e){}
+    /* tickets: a small 行事曆 button on every pass */
+    const rm=renderMe;renderMe=function(){const r=rm.apply(this,arguments);
+      $$('#meBody .pass').forEach(p=>{const id=+(p.dataset.qr||p.dataset.detail);if(!id||p.querySelector('[data-shr-cal]'))return;
+        const top=p.querySelector('.top')||p;top.insertAdjacentHTML('beforeend',`<button class="shr-pcal" data-shr-cal="${id}" aria-label="加到行事曆">${IC.clock}</button>`);});
+      return r;};
+    if(location.hostname===HOST&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+    if(ios()&&!ls.get(A2K)){a2hs=true;ls.set(A2K,'1');}
+    if(pend)setTimeout(()=>fromUrl(),0);
+    /* a link pasted into the open tab */
+    window.addEventListener('hashchange',()=>{if(readE())fromUrl();});
+  });
+
+  window.TG_SHARE={cfg,link,text,share,shareEvent,planFor,planText,sharePlan,ics,gcal,offerIcs,openCal,phase,fromUrl,readE,get pending(){return pend;},ios};
 })();
 
 /* ===== feat/album ===== */
@@ -3498,6 +3734,115 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   });
 
   window.TG_CAL={clashes,hard,entries,openCal,state:cs,dkey};
+})();
+
+/* ===== feat/host ===== */
+/* ===== feat/host: the host's side of a server event (prefix ho) =====
+   For events that are mine and came from the server (a.sid): the event page loads GET /events/:sid/participants and shows
+   pending requests (同意 / 拒絕), joined guests (移除) and the waitlist size. Each action is POST
+   /events/:sid/participants/:userId/approve|reject|remove through sync_actions.write: optimistic, locked, rolled back
+   with the server's message. On the event day of a risky event a 查看緊急聯絡人 row calls GET /events/:sid/emergency-contacts
+   after an in-page confirmation that says the view is logged. a.reqs mirrors the real pending list so anything counting
+   it is right; the core 加入申請 group is hidden for these events (this module draws the real one). Demo rows keep the
+   in-memory flow. */
+(()=>{
+  const A=TG_API,SA=()=>window.TG_SYNC_ACTIONS,TPE=8*36e5;
+  const live=a=>!!(a&&a.sid&&a.mine&&A.enabled);
+  const H={};                                   /* local id -> {st,pend,in,wait,err,busy,emg} */
+  const tday=t=>Math.floor((t+TPE)/864e5);
+  const eventDay=a=>{const d=tday(Date.now());return d>=tday(a.start)&&d<=tday(endOf(a));};
+  const risky=a=>{const o=optsOf(a);return o.risk!=='low'||needEmg(a);};
+  const first=n=>[...String(n||'？')][0];
+  const row=p=>({uid:p.user_id,name:p.display_name||'？',msg:p.message||'',plus:+p.plus_count||0,names:p.plus_names||[],st:p.status});
+  const reqsOf=h=>h.pend.map(p=>({u:first(p.name),msg:p.msg,uid:p.uid,name:p.name}));
+  const redraw=a=>{if(curDetail===a.id)refresh();};
+
+  function take(a,list){
+    const h=H[a.id]||(H[a.id]={}),g=list.filter(p=>p.role!=='host').map(row);
+    h.pend=g.filter(p=>p.st==='pending');h.in=g.filter(p=>p.st==='joined');h.wait=g.filter(p=>p.st==='waitlisted'||p.st==='offered');
+    h.st='ok';h.err='';a.reqs=reqsOf(h);
+  }
+  async function load(a){
+    if(!live(a)||!A.token)return;
+    const h=H[a.id]||(H[a.id]={}),sid=a.sid;if(h.loading)return;h.loading=true;if(h.st!=='ok')h.st='loading';
+    try{const r=await A.req(`/events/${encodeURIComponent(sid)}/participants`);if(byId(a.id)===a&&a.sid===sid)take(a,r.participants||[]);}
+    catch(e){if(h.st!=='ok'){h.st='err';h.err=e&&e.message||'';}}
+    finally{h.loading=false;redraw(a);}
+  }
+
+  /* approve | reject | remove: the list and the seat count move at once, the server's answer or a rollback follows */
+  const TXT={approve:'已同意',reject:'已婉拒',remove:'已移除'};
+  function act(a,kind,uid){
+    const S=SA(),h=H[a.id];if(!S||!h||h.st!=='ok'||h.busy||S.busy.has(a.id))return;
+    if(!S.signed()){S.askSignIn('登入後才能管理報名');return;}
+    const p=[...h.pend,...h.in,...h.wait].find(x=>x.uid===uid);if(!p)return;
+    const sn={pend:h.pend,in:h.in,wait:h.wait,reqs:a.reqs},drop=L=>L.filter(x=>x.uid!==uid);h.busy=uid;
+    S.write(a,()=>{
+      if(kind==='approve'){h.pend=drop(h.pend);h.in=h.in.concat([Object.assign({},p,{st:'joined'})]);a.n+=1+p.plus;}
+      else if(kind==='reject')h.pend=drop(h.pend);
+      else{h.pend=drop(h.pend);h.in=drop(h.in);h.wait=drop(h.wait);if(p.st==='joined')a.n=Math.max(0,a.n-1-p.plus);else if(p.st!=='pending'&&a.wl>0)a.wl--;}
+      a.reqs=reqsOf(h);
+    },`/events/${encodeURIComponent(a.sid)}/participants/${encodeURIComponent(uid)}/${kind}`,{method:'POST'},()=>{
+      h.busy=null;toast(`${TXT[kind]} ${p.name}`);load(a);
+    },e=>{h.busy=null;h.pend=sn.pend;h.in=sn.in;h.wait=sn.wait;a.reqs=sn.reqs;if(e&&e.status===409)load(a);});
+  }
+  async function emg(a){
+    const h=H[a.id]||(H[a.id]={});if(h.emg==='busy')return;h.emg='busy';redraw(a);
+    try{const r=await A.req(`/events/${encodeURIComponent(a.sid)}/emergency-contacts`);h.emg=r.contacts||[];}
+    catch(e){h.emg=null;const S=SA();if(S)S.oops(e,a);else toast(e&&e.message||'操作沒有成功');}
+    redraw(a);
+  }
+
+  /* ----- event page ----- */
+  const who=(p,sub)=>`<span class="av">${esc(first(p.name))}</span><span style="min-width:0"><b>${esc(p.name)}${p.plus?` <small class="ho-plus">+${p.plus}</small>`:''}</b><small>${sub}</small></span>`;
+  const plusTxt=p=>p.plus?`帶 ${p.plus} 位朋友${p.names.length?`（${p.names.map(esc).join('、')}）`:''}`:'';
+  const dis=(h,p)=>h.busy?' disabled':'';
+  function teamHTML(a,h){
+    const pend=h.pend.map(p=>`<div class="cell rq ho-req" data-ho-row="${esc(p.uid)}">${who(p,esc(p.msg)||plusTxt(p)||'沒有留言')}<span class="rqb"><button class="mini" data-ho-ok="${a.id}:${esc(p.uid)}"${dis(h,p)}>同意</button><button class="mini no" data-ho-no="${a.id}:${esc(p.uid)}"${dis(h,p)}>拒絕</button></span></div>`).join('');
+    const inn=h.in.map(p=>`<div class="cell ho-in" data-ho-row="${esc(p.uid)}">${who(p,plusTxt(p)||'已加入')}<button class="mini no" data-ho-rm="${a.id}:${esc(p.uid)}"${dis(h,p)}>移除</button></div>`).join('');
+    const wl=a.opts&&a.opts.wait!==false||h.wait.length?`<p class="hint pad ho-wl" data-ho-wait="${h.wait.length}">候補 ${h.wait.length} 人${h.wait.length?`：${h.wait.map(p=>esc(p.name)).join('、')}`:''}</p>`:'';
+    return (pend?`<div class="sh rv"><h2>加入申請</h2><span class="more tnum">${h.pend.length} 人等你回覆</span></div><div class="group rv ho-g">${pend}</div>`:'')+
+      `<div class="sh rv"><h2>已加入</h2><span class="more tnum">${h.in.length} 人</span></div>`+
+      (inn?`<div class="group rv ho-g">${inn}</div>`:`<p class="empty rv ho-empty"><b>還沒有人加入</b>有人報名會出現在這裡。</p>`)+wl;
+  }
+  function emgHTML(a,h){
+    const e=h.emg;
+    if(Array.isArray(e))return `<div class="sh rv"><h2>緊急聯絡人</h2><span class="more tnum">${e.length} 筆</span></div><div class="group rv ho-g ho-emgl">${e.length?e.map(c=>`<div class="cell"><span class="av">${esc(first(c.display_name))}</span><span style="min-width:0"><b>${esc(c.display_name||'')}</b><small>${esc(c.name||'')}${c.relation?` · ${esc(c.relation)}`:''}</small></span><a class="mini ho-tel" href="tel:${esc(String(c.phone||'').replace(/\s/g,''))}">${esc(c.phone||'')}</a></div>`).join('')
+      :`<p class="empty"><b>沒有登記的緊急聯絡人</b>已加入的人都還沒填。</p>`}</div><p class="hint pad">這次查看已記錄在伺服器。</p>`;
+    if(e==='ask')return `<div class="group rv ho-g"><div class="cell ho-cf" style="grid-template-columns:minmax(0,1fr) auto"><span style="min-width:0"><b>要查看緊急聯絡人嗎？</b><small>每次查看都會留下紀錄（誰、什麼時候、看了誰的）。只在需要聯絡家屬時使用。</small></span><span class="rqb"><button class="mini no" data-ho-emgno="${a.id}">取消</button><button class="mini" data-ho-emgok="${a.id}">確認查看</button></span></div></div>`;
+    return `<div class="group rv ho-g"><button class="cell" data-ho-emg="${a.id}"${e==='busy'?' disabled':''} style="grid-template-columns:auto minmax(0,1fr) auto"><span class="av ho-ic">${IC.users}</span><span style="min-width:0"><b>查看緊急聯絡人</b><small>${e==='busy'?'讀取中…':'只有活動當天看得到，查看會留下紀錄'}</small></span><span class="chev">›</span></button></div>`;
+  }
+  FX.detailMid.push(a=>{
+    if(!live(a))return '';
+    const h=H[a.id]||{st:'loading'};let out='';
+    if(!A.token)out=`<p class="hint pad ho-note" data-ho-st="signed-out">登入後才能看報名名單</p>`;
+    else if(h.st==='err')out=`<div class="ho-err rv" data-ho-st="err"><span>名單沒有載入成功${h.err?`：${esc(h.err)}`:''}</span><button class="mini" data-ho-reload="${a.id}">重試</button></div>`;
+    else if(h.st!=='ok')out=`<p class="hint pad ho-note" data-ho-st="loading">載入報名名單中…</p>`;
+    else out=teamHTML(a,h);
+    if(A.token&&risky(a)&&eventDay(a))out+=emgHTML(a,h);
+    return out;
+  });
+
+  FX.click.push((b,d)=>{
+    const pair=v=>{const i=v.indexOf(':');return [byId(+v.slice(0,i)),v.slice(i+1)];};
+    if(d.hoOk){const [a,u]=pair(d.hoOk);if(live(a))act(a,'approve',u);return true;}
+    if(d.hoNo){const [a,u]=pair(d.hoNo);if(live(a))act(a,'reject',u);return true;}
+    if(d.hoRm){const [a,u]=pair(d.hoRm);if(live(a))act(a,'remove',u);return true;}
+    if(d.hoReload){const a=byId(+d.hoReload);if(a&&H[a.id])H[a.id].st='loading';load(a);refresh();return true;}
+    if(d.hoEmg){const a=byId(+d.hoEmg),h=H[a.id]||(H[a.id]={});if(h.emg!=='busy'){h.emg='ask';refresh();}return true;}
+    if(d.hoEmgno){const a=byId(+d.hoEmgno);if(H[a.id])H[a.id].emg=null;refresh();return true;}
+    if(d.hoEmgok){const a=byId(+d.hoEmgok);if(live(a))emg(a);return true;}
+    return false;
+  });
+
+  FX.boot.push(()=>{
+    /* the core 加入申請 group (demo-only in-memory approve) steps aside for server events */
+    const rg=reqGroup;reqGroup=function(a){return live(a)?'':rg.apply(this,arguments);};
+    const od=openDetail;openDetail=function(id){const r=od.apply(this,arguments);const a=byId(+id);if(live(a))load(a);return r;};
+  });
+  A.on('auth',u=>{Object.keys(H).forEach(k=>delete H[k]);const a=byId(curDetail);if(u&&live(a)&&ovOpen('#o-detail'))load(a);});
+
+  window.TG_HOST={H,load,act,emg,live,eventDay};
 })();
 
 /* ===== feat/linelogin ===== */
@@ -4129,7 +4474,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       :`<div class="rp-tgt">${avOf(who)}<span><b>${esc(who)}</b><small>${t.ctx?esc(t.ctx):'檢舉這個人'}</small></span></div>`;
     box().innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>${ev?'檢舉活動':'檢舉'}</h2><span></span></div>
       ${head}
-      <div class="glbl2">發生了什麼事？</div><div class="frm"><div class="fr"><div class="opts" id="rpReasons">${REASONS.map(r=>`<button type="button" data-rp="reason" data-rp-v="${r}" aria-checked="false">${r}</button>`).join('')}</div></div></div>
+      <div class="glbl2">發生了什麼事？</div><div class="frm"><div class="fr"><div class="opts" id="rpReasons" role="radiogroup" aria-label="發生了什麼事">${REASONS.map(r=>`<button type="button" role="radio" data-rp="reason" data-rp-v="${r}" aria-checked="false">${r}</button>`).join('')}</div></div></div>
       <div class="glbl2">補充說明 <span class="opt">選填</span></div><div class="frm"><div class="fr"><textarea class="fld" id="rpDetail" maxlength="200" placeholder="時間、對話內容或其他細節，幫助我們更快處理"></textarea><small class="rp-cnt tnum" id="rpCnt">0/200</small></div></div>
       ${blocked.has(who)?'':`<div class="frm rp-sw"><label class="fr sw"><span class="lb">一併封鎖 ${esc(who)}<small>對方看不到你，你也看不到對方發起的活動</small></span><input type="checkbox" role="switch" id="rpBlock" data-rp-who="${esc(who)}"></label></div>`}
       <p class="hint pad rp-hint">檢舉內容不會讓對方知道是誰送出的。</p>
@@ -4359,6 +4704,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     const p=G,c=contact(),h=S.help;
     $('#sfHelpIn').innerHTML=`<div class="shh"><button class="l" data-close>關閉</button><h2>需要幫忙</h2><span></span></div>
       <a class="sf-112" href="tel:112" data-sf-112>撥打 112<small>手機沒有 SIM 卡或收不到訊號也能撥</small></a>
+      <a class="sf-165" href="tel:165" data-sf-165><span class="sf-n tnum">165</span><span style="min-width:0"><b>165 反詐騙諮詢專線</b><small>有人要你加 LINE、投資或匯款？先打這支電話問</small></span></a>
       <div class="glbl2">通知其他人</div>
       <div class="group sf-hg">
         ${h.emg==='ask'?`<div class="cell sf-cf"><span class="av">${esc(c.name[0])}</span><span style="min-width:0"><b>要通知 ${esc(c.name)} 嗎？</b><small>會附上你的位置和「${esc(p.title)}」的資訊</small></span><span class="sf-cfb"><button class="mini no" data-sf-hemg="no">取消</button><button class="mini" data-sf-hemg="ok">通知</button></span></div>`
@@ -4370,6 +4716,16 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       <p class="hint pad">這是原型，按下去不會真的傳出任何訊息。</p>`;
   }
   $('#sh-filter').insertAdjacentHTML('beforebegin','<section class="sheet short form" id="sh-sfhelp" role="dialog" aria-modal="true" aria-label="需要幫忙"><div class="grab"></div><div class="sheet-in" id="sfHelpIn"></div></section>');
+
+  /* --- 檢舉 entry on the core feedback sheet (#sh-rate has no hook, so renderRate is wrapped by name) ---
+     guest: one link that reports the host; host: one link per person. Both go through feat/report's user flow. */
+  function rateReport(){
+    if(!window.TG_RP||!rv)return;const p=pastById(rv.id),box=$('#rateIn'),foot=box&&box.querySelector('.sfoot');if(!p||!foot||box.querySelector('.sf-rp'))return;
+    const b=(n,ctx,t)=>`<button type="button" data-rp="rep-user" data-rp-v="${esc(n)}" data-rp-ctx="「${esc(p.title)}」${ctx}">${t}</button>`;
+    foot.insertAdjacentHTML('beforebegin',`<p class="sf-rp" data-sf-rp="${p.id}">${p.mine?'有人讓你不舒服？檢舉：'+p.ppl.map(u=>b(u+'○○','參加者',u+'○○')).join('<span aria-hidden="true">・</span>')
+      :b(p.host,'團主','檢舉這個人／這場活動')}</p>`);
+  }
+  const rr=renderRate;renderRate=function(){const r=rr.apply(this,arguments);try{rateReport();}catch(e){console.error(e);}return r;};
 
   /* --- actions --- */
   function fire(){
@@ -4683,7 +5039,8 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     crReset();crCheck();toast('已發布');sync(a);
   }
 
-  window.TG_SYNC_ACTIONS={busy,svBusy,apply,join,leave,answerOffer,askSignIn,createBody,pactBody,get posting(){return posting;}};
+  /* write/oops/live/signed are shared with feat/host (team actions use the same optimistic-then-rollback path) */
+  window.TG_SYNC_ACTIONS={busy,svBusy,apply,join,leave,answerOffer,askSignIn,createBody,pactBody,write,oops,live,signed,MSG,get posting(){return posting;}};
 })();
 
 /* ===== feat/sync_events ===== */
@@ -4702,6 +5059,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     avoid:[['shellfish','beef','spicy','cilantro'],['甲殼海鮮','牛','辣','香菜']],length:[['quick','half','open','full'],['快閃 1–1.5 小時','半日 2–3 小時','看感覺續攤','全日']]};
   const ok={group:false,date:false},failed={group:false,date:false};
   let gen=0,loadedTok=null,seeds=null;
+  /* a.hostVerified: the badge and the 只看已驗證 filter read it. Server rows map host.verified; while the seed is on screen
+     three demo hosts count as verified (象山 安安, 爵士 蔡沐恩, 溯溪 江志遠) */
+  [3,8,9].forEach(id=>{const a=byId(id);if(a&&!a.sid)a.hostVerified=true;});
   const mins=t=>Math.max(0,Math.round((Date.now()-t)/6e4));
   const curMode=()=>{try{return posterMode;}catch(e){return 'group';}};
 
@@ -4746,7 +5106,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     const keepAddr=!!(own&&own.addrOk&&(st==='joined'||mine)),seen=(rep.attended||0)+(rep.no_show||0),exact=r.lat!=null?kmAng(r.lat,r.lng):null,loc=exact||kmAng(r.public_lat,r.public_lng);
     const name=h.display_name||'團主',given=[...name].length>=3?[...name].slice(1).join(''):name;
     const a={id,sid:r.id,hostId:h.id||null,cat:r.category,title:r.title,host:name,
-      hr:rep.avg_stars!=null?Math.round(rep.avg_stars*10)/10:0,hrNew:!!rep.is_new,att:seen?Math.round(100*(rep.attended||0)/seen):100,verified:!!h.verified,
+      hr:rep.avg_stars!=null?Math.round(rep.avg_stars*10)/10:0,hrNew:!!rep.is_new,att:seen?Math.round(100*(rep.attended||0)/seen):100,verified:!!h.verified,hostVerified:!!h.verified,
       start:r.starts_at,end:r.ends_at,place:r.place_name,km:loc?loc[0]:own?own.km:3,ang:loc?loc[1]:own?own.ang:(r.id.length*47)%360,
       fee:feeText(r),cap:r.capacity,n:Math.max(0,(r.seats_taken||0)-(st==='joined'&&!mine?1+(+r.my_plus_count||0):0)),minN:r.min_people,wl:Math.max(0,(r.waitlist_count||0)-(st==='waitlisted'||st==='offered'?1:0)),
       /* lists never carry the address: one learned from the detail is kept while you are still in */
@@ -5073,14 +5433,43 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     if(c.next&&!$('#roomMsgs [data-more="msg"]'))$('#roomMsgs').insertAdjacentHTML('afterbegin',`<button type="button" class="lnk2 smore" data-ss-older ${c.older?'disabled':''}>${c.older?'載入中…':'較早的訊息'}</button>`);
   });
   $('#roomMsgs').addEventListener('scroll',e=>{if(on()&&e.target.scrollTop<40){const c=srv(curRoom);if(c&&c.next&&!c.older)loadOlder(curRoom);}},{passive:true});
+
+  /* ----- anti-scam nudge (demo rooms too) -----
+     A message that asks for LINE or talks money gets one system-style line under it, once per sender per room (the sender's
+     first such message on screen). Incoming ones carry 檢舉, which opens feat/report's user flow. Sending such a message first
+     asks for a confirmation in a bar above the composer, never window.confirm. */
+  const SCAM=/加.?LINE|LINE ?ID|line\.me|投資|虛擬貨幣|比特幣|USDT|穩賺|報酬|匯款|轉帳|保證獲利/i;
+  const NUDGE='對方要求加 LINE 或談投資？小心詐騙，先在 App 內聊，有疑慮可撥 165。';
+  function nudge(a){
+    const c=chats[a.id],box=$('#roomMsgs');if(!c||!box)return;
+    box.querySelectorAll('.ss-scam').forEach(x=>x.remove());
+    const from=Math.max(0,c.msgs.length-moreN.msg),ms=c.msgs.slice(from).filter(m=>m.w!=='sys'),bs=box.querySelectorAll('.bub'),done=new Set();
+    ms.forEach((m,i)=>{const b=bs[i],key=m.w==='me'?'me':m.n;if(!b||done.has(key)||!SCAM.test(m.txt||''))return;done.add(key);
+      const rep=m.w!=='me'&&window.TG_RP?`<button type="button" data-rp="rep-user" data-rp-v="${esc(m.n)}" data-rp-ctx="「${esc(headline(a)[0])}」群組訊息">檢舉</button>`:'';
+      b.insertAdjacentHTML('afterend',`<span class="ss-scam" role="note" data-ss-scam="${esc(key)}">${IC.warn}<span>${NUDGE}</span>${rep}</span>`);});
+  }
+  FX.room.push(a=>nudge(a));
+  const cf={ok:false,txt:''};
+  function askSend(txt){
+    cf.txt=txt;let el=$('#ssCf');
+    if(!el){el=document.createElement('div');el.id='ssCf';el.className='ss-cf';el.setAttribute('role','alertdialog');$('#roomForm').insertAdjacentElement('beforebegin',el);}
+    el.innerHTML=`<span>這則訊息包含加 LINE 或投資字眼，確定要送出？</span><span class="ss-cfb"><button type="button" class="mini no" data-ss-cfno>取消</button><button type="button" class="mini" data-ss-cfgo>送出</button></span>`;
+  }
+  const dropCf=()=>{const el=$('#ssCf');if(el)el.remove();cf.txt='';};
   /* own submit wins over the demo one (which fakes a reply): capture on window runs before the form's listener */
   window.addEventListener('submit',e=>{
-    if(e.target.id!=='roomForm'||!on()||!srv(curRoom))return;
+    if(e.target.id!=='roomForm')return;
+    const inp=$('#roomInput'),txt=inp.value.trim();
+    if(txt&&!cf.ok&&SCAM.test(txt)){e.preventDefault();e.stopImmediatePropagation();askSend(txt);return;}
+    cf.ok=false;dropCf();
+    if(!on()||!srv(curRoom))return;
     e.preventDefault();e.stopImmediatePropagation();
-    const inp=$('#roomInput'),txt=inp.value.trim();if(!txt)return;inp.value='';$('#roomSend').disabled=true;send(curRoom,txt);
+    if(!txt)return;inp.value='';$('#roomSend').disabled=true;send(curRoom,txt);
   },true);
 
   FX.click.push((b,d)=>{
+    if(d.ssCfno!==undefined){dropCf();return true;}
+    if(d.ssCfgo!==undefined){const t=cf.txt;dropCf();if(!t||curRoom==null)return true;$('#roomInput').value=t;cf.ok=true;$('#roomForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));cf.ok=false;return true;}
     if(d.ssPf!==undefined){pf={birth_date:'',gender:'',err:''};renderPf();showSheet('#sh-ss-pf');return true;}
     if(d.ssG){if(pf){pf.gender=d.ssG;renderPf();}return true;}
     if(d.ssPfgo!==undefined){if(pf&&!pf.busy)savePf();return true;}
@@ -5128,7 +5517,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
   A.on('auth',u=>{if(u&&u.id===uid)return;if(uid)stop();if(u&&A.enabled)start(u);});
 
-  window.TG_SS={sock:S,start,stop,tick,loadNotices:()=>loadNotices(gen),get state(){return {uid,gen,prof,rooms,nt};},KMAP};
+  window.TG_SS={sock:S,start,stop,tick,loadNotices:()=>loadNotices(gen),get state(){return {uid,gen,prof,rooms,nt};},KMAP,SCAM,NUDGE,nudge};
 })();
 
 /* ===== feat/trust ===== */
@@ -5140,6 +5529,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     '行程順':['流程排得很順，不會乾等','路線安排得剛好'],'氣氛好':['大家很快就聊開了','氣氛很輕鬆，新手不尷尬'],'會再跟':['下次還想跟','已經追蹤，等下一團']};
   const REP={};
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  /* verified host: a.hostVerified comes from the server (host.verified, set by feat/sync_events); seed hosts of 3, 8, 9 show it for the demo */
+  const SEED_VER=[3,8,9];SEED_VER.forEach(id=>{const a=byId(id);if(a&&a.hostVerified==null)a.hostVerified=true;});
+  const hv=a=>!!a&&(a.hostVerified!=null?!!a.hostVerified:a.sid?!!a.verified:SEED_VER.includes(a.id));
   /* star counts whose average rounds to hr (n>=12 keeps the rounding exact) */
   const histFor=(hr,n)=>{const total=Math.round(hr*n);let def=5*n-total;const h={5:0,4:0,3:0,2:0,1:0};
     h[3]=Math.floor(def/6);def-=2*h[3];h[4]=def;h[5]=n-h[4]-h[3];return h;};
@@ -5156,7 +5548,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     const top=RVTAG.slice().sort((x,y)=>tags[y]-tags[x]);
     const reviews=[0,1,2].map(i=>{const t1=top[(id+i)%3],t2=top[(id+i+1)%4];const tg=t1===t2?[t1]:[t1,t2];
       return {u:PEOPLE[(id*5+i*7)%PEOPLE.length],star:i===2&&h[4]?4:5,txt:RVTXT[t1][(id+i)%2],tags:tg,ago:[60*26,60*24*4,60*24*11][i]};});
-    return {name,h,tags,att:a.att,hosted:6+id*3,reply:REPLY[id%REPLY.length],ver:id%3===0,since:2023+(id%3),reviews};
+    return {name,h,tags,att:a.att,hosted:6+id*3,reply:REPLY[id%REPLY.length],ver:hv(a),since:2023+(id%3),reviews};
   }
   const rep=name=>REP[name]||(REP[name]=seed(name));
   const cnt=r=>[5,4,3,2,1].reduce((s,k)=>s+r.h[k],0);
@@ -5168,7 +5560,8 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   const topTags=(r,k)=>RVTAG.slice().sort((x,y)=>(r.tags[y]||0)-(r.tags[x]||0)).slice(0,k);
   const replyTxt=m=>m<60?`${m} 分鐘`:`${Math.round(m/60)} 小時`;
   const stars=s=>'★'.repeat(s)+'☆'.repeat(5-s);
-  const verB=r=>r.ver?'<em class="tr-ver">✓ 實名</em>':'';
+  /* with the event in hand the badge follows that row (a server host can be verified today and not in the cached seed) */
+  const verB=(r,a)=>{if(a)r.ver=hv(a);return r.ver?'<em class="tr-ver" title="已通過真人驗證">✓ 已驗證</em>':'';};
 
   const rvHTML=v=>`<div class="tr-rv" data-tr-rv><span class="av">${esc(v.u)}</span><div><p><b>${v.me?'你':esc(v.u)+'○○'}</b><span class="tr-st" aria-label="${v.star} 顆星">${stars(v.star)}</span></p>
     ${v.txt?`<p class="tr-tx">${esc(v.txt)}</p>`:''}${v.tags.length?`<p class="tr-rtg">${v.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</p>`:''}<small>${agoText(v.ago)}</small></div></div>`;
@@ -5181,7 +5574,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       :`<div class="tr-score"><b class="tnum" data-tr-score>★ ${avg(r).toFixed(1)}</b><small><span class="tnum" data-tr-n>${n}</span> 則評價</small></div>`;
     return `<div class="sh rv"><h2>${a.mine?'你的團主信用':'團主'}</h2></div>
     <div class="tr-card rv" data-tr-card="${esc(a.host)}">
-      <div class="tr-hd"><span class="av">${esc(a.host[0])}</span><span class="tr-nm"><b>${esc(a.host)}${verB(r)}</b><small>${r.since} 年加入</small></span>${a.mine?'':`<button class="fol ${fol?'on':''}" data-follow="${esc(a.host)}">${fol?'追蹤中':'追蹤'}</button>`}</div>
+      <div class="tr-hd"><span class="av">${esc(a.host[0])}</span><span class="tr-nm"><b>${esc(a.host)}${verB(r,a)}</b><small>${r.since} 年加入</small></span>${a.mine?'':`<button class="fol ${fol?'on':''}" data-follow="${esc(a.host)}">${fol?'追蹤中':'追蹤'}</button>`}</div>
       ${score}
       <div class="tr-stats"><div><b class="tnum" data-tr-att>${r.att==null?'—':r.att+'%'}</b><small>準時出席</small></div><div><b class="tnum" data-tr-hosted>${hosted(r)}</b><small>揪過幾團</small></div><div><b class="tnum">${replyTxt(r.reply)}</b><small>回覆約</small></div></div>
       ${!isNew(r)?`<div class="tr-bars">${topTags(r,3).map(t=>barHTML(r,t)).join('')}</div>`:''}
@@ -5211,7 +5604,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     if(a.mine||(s!=='join'&&s!=='apply'))return '';
     const r=rep(a.host);
     const bits=isNew(r)?['新團主',`${cnt(r)} 則評價`]:[`★ ${avg(r).toFixed(1)}`,r.att!=null?`出席 ${r.att}%`:'',recN(r)?`${recN(r)} 人想再跟`:''];
-    return `<p class="tr-js" data-tr-js><span class="av">${esc(a.host[0])}</span><span>團主 ${esc(a.host)}${r.ver?' ✓':''}</span><em class="tnum">${bits.filter(Boolean).join(' · ')}</em></p>`;
+    return `<p class="tr-js" data-tr-js><span class="av">${esc(a.host[0])}</span><span>團主 ${esc(a.host)}${hv(a)?' ✓':''}</span><em class="tnum">${bits.filter(Boolean).join(' · ')}</em></p>`;
   });
 
   /* me: your own host summary */
@@ -5233,7 +5626,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     r.reviews.unshift({u:'安',me:true,star:v.star,txt:'',tags:tg,ago:0});
   });
 
-  window.TG_TR={REP,rep,cnt,avg,recN,hosted,isNew,pctOf,topTags,openAll,histFor};
+  window.TG_TR={REP,rep,cnt,avg,recN,hosted,isNew,pctOf,topTags,openAll,histFor,hv};
 })();
 
 /* ===== feat/weather ===== */
@@ -5318,9 +5711,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   function renderConfirm(){
     const a=byId(cf.id),f=forecast(a),mem=Math.max(0,count(a)-1);
     const T={go:'照常舉行',post:'延期活動',cancel:'取消活動'}[cf.act];
-    const opt=p=>{const k=shiftDays(a,p);return `<button type="button" data-wx-pick="${p}" aria-checked="${cf.pick===p}">${p==='7'?'下週同一天':'下個週末'} · ${md(a.start+k*864e5)} ${ZH[new Date(a.start+k*864e5).getDay()]}</button>`;};
+    const opt=p=>{const k=shiftDays(a,p);return `<button type="button" role="radio" data-wx-pick="${p}" aria-checked="${cf.pick===p}">${p==='7'?'下週同一天':'下個週末'} · ${md(a.start+k*864e5)} ${ZH[new Date(a.start+k*864e5).getDay()]}</button>`;};
     const body=cf.act==='go'?`<p class="hint pad">降雨機率 ${f.pop}%。會通知 ${mem} 位成員照常出發，提醒大家帶雨具。</p>`
-      :cf.act==='post'?`<div class="glbl2">改到哪一天</div><div class="frm"><div class="fr col"><div class="opts" id="wxPicks">${opt('7')}${opt('wk')}</div></div></div>
+      :cf.act==='post'?`<div class="glbl2">改到哪一天</div><div class="frm"><div class="fr col"><div class="opts" id="wxPicks" role="radiogroup" aria-label="改到哪一天">${opt('7')}${opt('wk')}</div></div></div>
         <p class="hint pad">時間維持 ${hm(a.start)}–${hm(endOf(a))}。已加入的 ${mem} 人會收到通知，不方便的人可以退出。</p>`
       :`<p class="hint pad">取消後會通知 ${mem} 位成員，活動不再出現在探索列表。這個動作無法復原。</p>`;
     $('#wxIn').innerHTML=`<div class="shh"><button class="l" data-close>返回</button><h2>${T}</h2><span></span></div>
@@ -5381,7 +5774,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 
   /* composer: quick-pick rain rules under the 雨天備案 field */
   const RULES=['下雨取消','下雨延期','小雨照常'];
-  $('#crRain').insertAdjacentHTML('afterend',`<div class="opts quick wx-quick" id="wxRain" role="group" aria-label="常用雨天規則">${RULES.map(r=>`<button type="button" data-wx-rain="${r}" aria-checked="false">${r}</button>`).join('')}</div>`);
+  $('#crRain').insertAdjacentHTML('afterend',`<div class="opts quick wx-quick" id="wxRain" role="radiogroup" aria-label="常用雨天規則">${RULES.map(r=>`<button type="button" role="radio" data-wx-rain="${r}" aria-checked="false">${r}</button>`).join('')}</div>`);
   $('#crRain').addEventListener('input',()=>{const v=$('#crRain').value;$$('#wxRain button').forEach(x=>x.setAttribute('aria-checked',String(x.dataset.wxRain===v)));});
 
   window.TG_WX={forecast,status,decide,card,isWx,shiftDays,HI};
@@ -5481,7 +5874,7 @@ function drawRadar(){
 /* ===== theme/poster.js — 海報牆: replaces the home screen, opens detail on the same poster =====
    Loaded after theme/stamp.js. Delete this file and theme/poster.css, re-run assemble.py to get the old home back. */
 /* in a function: glyph() is hoisted and already called while ui.js loads, before any const here exists */
-function posterCats(){return {sport:['#1B2BFF','#FFFFFF'],board:['#FFD60A','#111111'],outdoor:['#E8440F','#FFE9C9'],food:['#5A0B1E','#FFD9C2'],art:['#F4F2EC','#111111'],book:['#F2EDE0','#111111'],music:['#19E3C4','#0B0B0B'],me:['#FFE500','#111111']};}
+function posterCats(){return {sport:['#1B2BFF','#FFFFFF'],board:['#FFD60A','#111111'],outdoor:['#C03A0B','#FFE9C9'],food:['#5A0B1E','#FFD9C2'],art:['#F4F2EC','#111111'],book:['#F2EDE0','#111111'],music:['#19E3C4','#0B0B0B'],me:['#FFE500','#111111']};}
 const POSTER_CAT=posterCats();
 /* category marks everywhere: a solid tile in the category's poster colour */
 function glyph(cat,mat,big){
@@ -5501,7 +5894,7 @@ const POSTER_ART={
   7:{t:/原子習慣/,c:['#F2EDE0','#111111'],a:()=>`<div class="pa an" style="${pPos(24,-8,`font-size:${PU(155)};line-height:.98;color:#E0301E`)}">3</div><div class="pa se v" style="${pPos(3,0,`font-size:${PU(17)};line-height:1;color:#111`)}">原子習慣</div>`},
   6:{t:/羽球/,c:['#C6F135','#0A0A0A'],a:()=>`<svg viewBox="0 0 390 600" preserveAspectRatio="none" style="${pPos(0,0,`width:${PU(100)};height:${PU(132)}`)}" fill="none" stroke="#fff" stroke-width="7"><rect x="28" y="4" width="334" height="592"/><path d="M28 300H362M70 4V596M320 4V596M28 208H362M28 392H362M195 4V208M195 392V596M28 46H362M28 554H362"/></svg><div class="pa" style="${pPos(6,24,`font-size:${PU(44)}`)}">羽球<br>雙打</div>`},
   4:{t:/小酒館/,c:['#5A0B1E','#FFD9C2'],sub:'赤峰街，不拚酒，交換生活',a:()=>`<div class="pround" style="${pPos(-18,78,`box-sizing:border-box;width:${PU(56)};height:${PU(56)};border:${PU(10)} solid #FF8A5C`)}"></div><div class="pa se v" style="right:${PU(4)};top:0;font-size:${PU(29)}">下班喝<br>一杯</div>`},
-  3:{t:/象山/,c:['#E8440F','#FFE9C9'],bg:()=>`<svg viewBox="0 0 390 420" preserveAspectRatio="none" style="left:0;bottom:0;width:100%;height:50%" fill="#12261D"><path d="M0 170 88 70l62 66 66-110 84 118 44-42 46 58V420H0Z"/></svg>`,a:()=>`<div class="pround" style="${pPos(12,16,`width:${PU(76)};height:${PU(76)};background:#FFE9C9;z-index:-1`)}"></div><div class="pa" style="${pPos(4,0,'color:#12261D')}">日出</div>`},
+  3:{t:/象山/,c:['#C03A0B','#FFE9C9'],bg:()=>`<svg viewBox="0 0 390 420" preserveAspectRatio="none" style="left:0;bottom:0;width:100%;height:50%" fill="#12261D"><path d="M0 170 88 70l62 66 66-110 84 118 44-42 46 58V420H0Z"/></svg>`,a:()=>`<div class="pround" style="${pPos(12,16,`width:${PU(76)};height:${PU(76)};background:#FFE9C9;z-index:-1`)}"></div><div class="pa" style="${pPos(4,0,'color:#0B0B0B')}">日出</div>`},
   8:{t:/爵士/,c:['#0B0B0B','#FFFFFF'],a:()=>`<div style="${pPos(0,0,`width:${PU(27)};height:${PU(111)};display:flex;flex-direction:column;gap:${PU(1.5)}`)}">${[[5],[1],[9,1],[2],[1],[6],[1,1],[3]].map(([f,t])=>`<i style="display:block;flex:${f};background:${t?'#19E3C4':'#fff'}"></i>`).join('')}</div><div class="pa an" style="left:${PU(100)};top:0;font-size:${PU(69)};line-height:.9;color:#19E3C4;white-space:nowrap;transform-origin:0 0;transform:rotate(90deg)">JAM</div>`},
   9:{t:/溯溪/,c:['#00586B','#FFFFFF'],bg:()=>{let w='';for(let y=340;y<610;y+=38)w+=`<path d="M-20 ${y}q50 -34 100 0t100 0t100 0t100 0t100 0"/>`;return `<svg viewBox="0 0 390 760" preserveAspectRatio="none" style="inset:0;width:100%;height:100%" fill="none" stroke="#2BD9E8" stroke-width="16">${w}</svg>`;},a:()=>`<div class="pa v" style="right:${PU(4)};top:0;font-size:${PU(44)};line-height:1">溯溪</div>`},
   5:{t:/看展/,c:['#F4F2EC','#111111'],a:()=>`<div style="${pPos(0,0,`width:${PU(60)};height:${PU(60)};background:#E0301E`)}"></div><div class="pround" style="${pPos(58,6,`width:${PU(56)};height:${PU(56)};background:#1B2BFF;mix-blend-mode:multiply`)}"></div><div style="${pPos(56,46,`width:0;height:0;border-left:${PU(21)} solid transparent;border-right:${PU(21)} solid transparent;border-bottom:${PU(34)} solid #FFD60A`)}"></div><div class="pa" style="${pPos(4,90)}">看展</div>`}
@@ -5529,8 +5922,10 @@ function posterMini(a){
   const h=posterOf(a),[bg,ink]=posterCol(a);
   return `<div class="cell pmini" data-pid="${a.id}" style="--b:${bg};--k:${ink}"><button class="ptap" data-detail="${a.id}" aria-label="${esc(a.title)}"></button>
     ${h&&h.bg?`<div class="pbgl">${h.bg()}</div>`:''}${posterStage(a)}
-    <div class="pm-f"><span class="w"><b class="tnum"><i>${whenLabel(a.start)}</i>${hm(a.start)}</b><small>${esc(a.place)}${posterPay(a)?` · ${posterPay(a)}`:''}</small></span><span class="pj">${posterWords(miniJoin(a))}</span></div></div>`;
+    <div class="pm-f"><span class="w"><b class="tnum">${posterWhen(a)}</b><small>${esc(a.place)}${posterPay(a)?` · ${posterPay(a)}`:''}</small></span><span class="pj">${posterWords(miniJoin(a))}</span></div></div>`;
 }
+/* the foot's time: within the hour it says so, after the end it says so; the day word otherwise */
+function posterWhen(a){const now=Date.now(),d=a.start-now;return endOf(a)<now?'<i>已結束</i>':d>=0&&d<=36e5?`<i>即將開始</i>${hm(a.start)}`:`<i>${whenLabel(a.start)}</i>${hm(a.start)}`;}
 function posterHTML(a,end){
   const h=posterOf(a),[bg,ink]=posterCol(a),sub=a.dating?`${a.who} · ${a.bio}`:h&&h.sub||headline(a)[1];
   return `<section class="pst${end?' end':''}" data-pid="${a.id}" data-b="${bg}" data-k="${ink}" style="--b:${bg};--k:${ink}">
@@ -5538,10 +5933,26 @@ function posterHTML(a,end){
     ${h&&h.bg?`<div class="pbgl">${h.bg()}</div>`:''}${posterStage(a)}
     ${posterPay(a)==='I buy U'?'<span class="pbuy">I BUY U</span>':''}
     ${sub?`<p class="psub">${esc(sub)}</p>`:''}
-    <div class="pfoot"><div class="w"><b class="tnum"><i>${whenLabel(a.start)}</i>${hm(a.start)}</b><span>${esc(a.place)}${posterPay(a)?` · ${posterPay(a)}`:''}</span></div>${posterWords(joinPill(a))}</div>
+    <div class="pfoot"><div class="w"><b class="tnum">${posterWhen(a)}</b><span>${esc(a.place)}${posterPay(a)?` · ${posterPay(a)}`:''}</span></div>${posterWords(joinPill(a))}</div>
   </section>`;
 }
 let posterView='wall',posterLastView='wall',posterKey='';
+/* what the filters are doing, as a row of chips; × takes one filter off, the sheet stays in step */
+const FCHIP_N={fee:{free:'免費',paid:'收費'},risk:{low:'輕鬆',mid:'中等',high:'高風險'},seats:'只看還有名額',noapp:'不需要團主同意',newbie:'新手友善',verified:'只看已驗證團主'};
+function posterChips(cls){
+  const f=st.f,c=[];
+  f.cats.forEach(k=>c.push(['cat:'+k,CATN[k]]));
+  if(f.fee!=='any')c.push(['fee',FCHIP_N.fee[f.fee]]);if(f.risk!=='any')c.push(['risk',FCHIP_N.risk[f.risk]]);
+  ['seats','noapp','newbie','verified'].forEach(k=>{if(f[k])c.push([k,FCHIP_N[k]]);});
+  if(!c.length)return '';
+  return `<div class="fchips${cls?' '+cls:''}" role="group" aria-label="套用中的篩選">${c.map(([k,n])=>`<button data-fx="${k}" aria-label="移除篩選：${esc(n)}">${esc(n)}<i aria-hidden="true">×</i></button>`).join('')}<button class="fx-all" data-fclear>全部清除</button></div>`;
+}
+FX.click.push((b,d)=>{
+  if(!d.fx)return false;
+  const [k,v]=d.fx.split(':'),f=st.f;
+  if(k==='cat')f.cats.delete(v);else if(k==='fee'||k==='risk')f[k]='any';else f[k]=false;
+  if(openSheet&&openSheet.id==='sh-filter')renderFilter();renderHome();$$('#homeBody .rv').forEach(x=>x.classList.add('in'));return true;
+});
 /* ---------- long lists: above POSTER_WIN_MIN items only the part on screen is in the DOM, spacers keep the full height ---------- */
 const POSTER_WIN_MIN=60,POSTER_PAGE=100,POSTER_STUBS=8,POSTER_RADAR_MAX=60,NBAND_H=84;
 const pwTpl=document.createElement('template'),pwNode=h=>{pwTpl.innerHTML=h;return pwTpl.content.firstElementChild;};
@@ -5574,7 +5985,7 @@ let posterLC=null,posterNC=null;
 function posterLists(){
   const f=st.f,va=vacts(),recd=window.TG_OB&&TG_OB.prefs()?TG_OB.recs().map(r=>r.id):[];
   let h=acts.length;for(const a of va)h=(h*31+a.id+(a.start/6e4|0)*7+(f.seats?left(a)*13:0))|0;
-  const key=[posterMode,posterSex,st.seg,st.fresh,[...f.cats].join(),f.fee,f.risk,f.seats,f.noapp,f.newbie,new Date().toDateString(),recd.join(),h].join('|');
+  const key=[posterMode,posterSex,st.seg,st.fresh,[...f.cats].join(),f.fee,f.risk,f.seats,f.noapp,f.newbie,f.verified,new Date().toDateString(),recd.join(),h].join('|');
   if(posterLC&&posterLC.key===key)return posterLC;
   const rank=a=>{const i=recd.indexOf(a.id);return i<0?99:i;};
   /* the wall shows what the filters leave: a new post first, then what you said you like, then by time */
@@ -5629,34 +6040,34 @@ function posterPaint(){
 renderHome=function(){
   const sc=$('#s-home'),fn=fCount(),q=posterLists(),{byTime,wall}=q,big=wall.length>POSTER_WIN_MIN,flip=posterView!==posterLastView;
   const key=posterMode+'|'+posterSex+'|'+st.seg+'|'+st.fresh+'|'+fn;
-  let top=$('#s-home .ptop');if(!top){sc.insertAdjacentHTML('afterbegin','<div class="ptop"></div>');top=$('#s-home .ptop');}
+  let top=$('#s-home .ptop');if(!top){sc.insertAdjacentHTML('afterbegin','<header class="ptop"></header>');top=$('#s-home .ptop');}
   top.innerHTML=`<span class="plogo">Tagalong</span>
     <div class="seg" role="tablist" style="--ix:${['all','today','weekend'].indexOf(st.seg)}">${posterMode==='date'?[['all','全部'],['f','女生'],['m','男生']].map(([k,n])=>`<button role="tab" data-psex="${k}" aria-selected="${posterSex===k}">${n}</button>`).join(''):[['all','全部'],['today','今天'],['weekend','週末']].map(([k,n])=>`<button role="tab" data-seg="${k}" aria-selected="${st.seg===k}">${n}</button>`).join('')}</div>
     <div class="pvs${posterView!==posterLastView?' sw':''}" data-on="${posterView}" role="group" aria-label="切換檢視">
       <button class="${posterView==='wall'?'on':''}" data-pview="wall" aria-pressed="${posterView==='wall'}" aria-label="大海報" title="大海報"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="1" width="12" height="18" rx="2"/></svg></button>
       <button class="${posterView==='list'?'on':''}" data-pview="list" aria-pressed="${posterView==='list'}" aria-label="小格子、篩選" title="小格子、篩選"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5"/></svg>${fn&&posterView==='wall'?`<i>${fn}</i>`:''}</button>
-    </div>`;
+    </div>${posterView==='wall'?posterChips('pc-wall'):''}`;
   posterLastView=posterView;
-  sc.classList.toggle('pv-wall',posterView==='wall');sc.classList.toggle('pv-list',posterView==='list');
+  sc.classList.toggle('pv-wall',posterView==='wall');sc.classList.toggle('pv-list',posterView==='list');sc.classList.toggle('pv-chips',!!top.querySelector('.fchips'));
   /* the two views live side by side; a long list only builds the one on screen. Same list as last time: patch, keep scroll */
   const body=$('#homeBody');let w=body.querySelector(':scope > .pwall'),pl=body.querySelector(':scope > .plist');
   if(!w||!pl){body.innerHTML='<div class="pwall"></div><div class="plist"></div>';w=body.firstElementChild;pl=body.lastElementChild;PW=PG=null;
     w.addEventListener('scroll',()=>{posterWallSync();posterPaint();},{passive:true});}
   const keep=w.scrollTop;
-  if(!wall.length){PW=null;w.classList.remove('pw-on');w.innerHTML=`<div class="pempty"><b>${fAny()?'沒有符合的活動':'今天沒有活動'}</b>${fAny()?'<button class="lnk2" data-fclear>清除篩選</button>':''}</div>`;}
+  if(!wall.length){PW=null;w.classList.remove('pw-on');w.innerHTML=`<div class="pempty"><b>${fAny()?'沒有符合的活動':'今天沒有活動'}</b><div class="pe-acts">${posterMode==='date'?'':`<button class="lnk2" data-seg="${st.seg==='weekend'?'all':'weekend'}">${st.seg==='weekend'?'看全部':'看週末'}</button>`}<button class="lnk2" data-open="create">發起一團</button>${fAny()?'<button class="lnk2" data-fclear>清除篩選</button>':''}</div></div>`;}
   else if(posterView==='wall'||!big){
     if(PW&&PW.q===q&&PW.box===w){pwPatch(PW);if(flip)w.scrollTop=0;posterWallSync();}
     else{PW=posterWallMake(w,q);const H=posterWallH(),y=!flip&&key===posterKey?keep:0,i=H>0?Math.round(y/H):0;pwSet(PW,PW.win?i-2:0,PW.win?i+3:PW.total);w.scrollTop=y;}
   }else{PW=null;w.textContent='';}
   const want=byTime.length&&(posterView==='list'||!big),g=want&&PG&&PG.items===byTime&&PG.box.parentNode===pl?PG.box:null;
   [...pl.children].forEach(c=>{if(c!==g)c.remove();});
-  const head=`<div class="fbar rv"><button class="fbtn${fn?' on':''}" data-open="filter" aria-label="篩選">${IC.filter}篩選${fn?`<i>${fn}</i>`:''}</button><div class="kinds fk" role="group" aria-label="類型">${Object.entries(CATN).map(([k,n])=>`<button data-fcat="${k}" aria-checked="${st.f.cats.has(k)}">${n}</button>`).join('')}</div></div>
+  const head=`<div class="fbar rv"><button class="fbtn${fn?' on':''}" data-open="filter" aria-label="篩選">${IC.filter}篩選${fn?`<i>${fn}</i>`:''}</button><div class="kinds fk" role="group" aria-label="類型">${Object.entries(CATN).map(([k,n])=>`<button role="checkbox" data-fcat="${k}" aria-checked="${st.f.cats.has(k)}">${n}</button>`).join('')}</div></div>${posterChips()}
       ${fx('homeTop')}
       <div class="sh rv"><h2>全部活動</h2><span class="more tnum">${byTime.length} 場</span></div>`,tail=`<p class="foot rv">加入後才會看到精確的集合地點。</p>
       <div class="pad-b"></div>`;
   if(g){g.insertAdjacentHTML('beforebegin',head);g.insertAdjacentHTML('afterend',tail);pwPatch(PG);}
   else{
-    pl.innerHTML=head+(byTime.length?want?'<div class="group rv" id="allList"></div>':'':fAny()?`<p class="empty"><b>沒有符合的活動</b>放寬條件看看。<button class="lnk2" data-fclear>清除篩選</button></p>`:`<p class="empty"><b>今天沒有活動</b>換個時段看看，或自己發起一團。</p>`)+tail;
+    pl.innerHTML=head+(byTime.length?want?'<div class="group rv" id="allList"></div>':'':fAny()?`<p class="empty"><b>沒有符合的活動</b>放寬條件看看。<button class="lnk2" data-fclear>清除篩選</button><button class="lnk2" data-open="create">發起一團</button></p>`:`<p class="empty"><b>今天沒有活動</b>換個時段看看，或自己發起一團。<button class="lnk2" data-open="create">發起一團</button></p>`)+tail;
     PG=want?pwMake($('#allList'),{items:byTime,html:posterMini,win:byTime.length>POSTER_WIN_MIN,unit:2}):null;if(PG)pwSet(PG,0,PG.win?24:byTime.length);
   }
   /* sysFilterDecor's chip colours; its tab counts look for a .seg inside #homeBody, which the poster header never has, and cost a pass over every event */
@@ -5855,7 +6266,7 @@ const DATE_SEED=[
 ];
 Object.assign(POSTER_ART,{
   301:{t:/咖啡/,c:['#F2EDE0','#111111'],a:()=>`<div class="pround" style="${pPos(4,62,`box-sizing:border-box;width:${PU(60)};height:${PU(60)};border:${PU(11)} solid #5A0B1E`)}"></div><div class="pround" style="${pPos(46,74,`box-sizing:border-box;width:${PU(60)};height:${PU(60)};border:${PU(11)} solid #F2337A;mix-blend-mode:multiply`)}"></div><div class="pa" style="${pPos(4,0)}">咖啡</div>`},
-  302:{t:/看展/,c:['#F2337A','#FFFFFF'],a:()=>`<div style="${pPos(4,58,`width:${PU(56)};height:${PU(56)};background:#FFE500`)}"></div><div class="pround" style="${pPos(42,72,`width:${PU(58)};height:${PU(58)};background:#1B2BFF;mix-blend-mode:multiply`)}"></div><div class="pa" style="${pPos(4,0)}">看展</div>`},
+  302:{t:/看展/,c:['#CC1F60','#FFFFFF'],a:()=>`<div style="${pPos(4,58,`width:${PU(56)};height:${PU(56)};background:#FFE500`)}"></div><div class="pround" style="${pPos(42,72,`width:${PU(58)};height:${PU(58)};background:#1B2BFF;mix-blend-mode:multiply`)}"></div><div class="pa" style="${pPos(4,0)}">看展</div>`},
   303:{t:/拉麵/,c:['#0B0B0B','#FFFFFF'],a:()=>`<div class="pround" style="${pPos(16,50,`width:${PU(84)};height:${PU(84)};background:#FFE500`)}"></div><div style="${pPos(62,40,`width:${PU(3)};height:${PU(66)};background:#fff;box-shadow:${PU(7)} 0 0 #fff,${PU(18)} ${PU(8)} 0 #FF4F8B,${PU(25)} ${PU(8)} 0 #FF4F8B;transform:rotate(14deg)`)}"></div><div class="pa" style="${pPos(4,0)}">拉麵</div>`},
   304:{t:/散步/,c:['#C6F135','#0A0A0A'],a:()=>`<svg viewBox="0 0 100 100" style="${pPos(0,44,`width:${PU(100)};height:${PU(96)}`)}" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray=".1 8"><path d="M6 98C20 70 8 50 40 34S84 22 90 2" stroke="#0A0A0A"/><path d="M26 98C38 74 28 56 56 42S94 30 96 2" stroke="#F2337A"/></svg><div class="pa" style="${pPos(4,0)}">散步</div>`},
   305:{t:/電影/,c:['#1B2BFF','#FFFFFF'],a:()=>{let g='';for(let r=0;r<5;r++)for(let c=0;c<6;c++){const on=r===2&&(c===2||c===3);g+=`<div style="left:${PU(4+c*16)};top:${PU(52+r*17)};width:${PU(13)};height:${PU(14)};border-radius:${PU(3)};background:${on?'#FF4F8B':'rgba(255,255,255,.28)'}"></div>`;}return g+`<div class="pa" style="${pPos(4,0)}">電影</div>`;}},
@@ -5873,7 +6284,7 @@ function posterSetMode(m){
   posterModeKeys(m);
   switchTab(st.tab);
 }
-$('#phone').insertAdjacentHTML('beforeend',`<div class="pmode" data-on="group" role="group" aria-label="切換模式"><button data-pmode="group" aria-pressed="true">揪團</button><button data-pmode="date" aria-pressed="false">約會</button></div>`);
+$('#phone').insertAdjacentHTML('beforeend',`<nav class="pmode-nav" aria-label="模式"><div class="pmode" data-on="group" role="group" aria-label="切換模式"><button data-pmode="group" aria-pressed="true">揪團</button><button data-pmode="date" aria-pressed="false">約會</button></div></nav>`);
 FX.click.push((b,d)=>{
   if(d.pmode){if(d.pmode!==posterMode)posterSwitchMode(d.pmode,b);return true;}
   if(d.psex){posterSex=d.psex;renderHome();return true;}
@@ -5911,7 +6322,7 @@ let crPactV={};
 const pactOf=a=>a.pact||optsOf(a).pact||null;
 (function(){
   const sec=$$('#sh-create .glbl').find(x=>x.textContent.includes('誰可以來'));
-  if(sec)sec.insertAdjacentHTML('beforebegin',`<div id="crPact" hidden><div class="glbl2 pact-h">見面默契<small>選填，報名的人同意才能加入</small></div><div class="frm">${PACT_ROWS.map(([k,n,o])=>`<div class="fr col"><label>${n}</label><div class="opts">${o.map(v=>`<button type="button" data-pact="${k}" data-pactv="${v}" aria-checked="false">${v}</button>`).join('')}</div></div>`).join('')}</div></div>`);
+  if(sec)sec.insertAdjacentHTML('beforebegin',`<div id="crPact" hidden><div class="glbl2 pact-h">見面默契<small>選填，報名的人同意才能加入</small></div><div class="frm">${PACT_ROWS.map(([k,n,o])=>`<div class="fr col"><label>${n}</label><div class="opts" role="${k==='avoid'?'group':'radiogroup'}" aria-label="${n}">${o.map(v=>`<button type="button" role="${k==='avoid'?'checkbox':'radio'}" data-pact="${k}" data-pactv="${v}" aria-checked="false">${v}</button>`).join('')}</div></div>`).join('')}</div></div>`);
   FX.click.push((b,d)=>{
     if(!d.pact)return false;
     const k=d.pact,v=d.pactv;
@@ -5926,7 +6337,7 @@ const pactOf=a=>a.pact||optsOf(a).pact||null;
     const a=byId(curDetail),p=a&&pactOf(a),at=$('#detailIn .specs');if(!p||!at)return;
     const rows=[];if(posterPay(a))rows.push(['買單',posterPay(a)]);
     PACT_ROWS.forEach(([k,n])=>{const v=p[k];if(Array.isArray(v)?v.length:v)rows.push([n,Array.isArray(v)?v.join('、'):v]);});
-    at.insertAdjacentHTML('afterend',`<section class="pact rv in"><h3>這場的默契</h3><div>${rows.map(([k,v])=>`<div class="kv"><small>${k}</small><span>${esc(v)}</span></div>`).join('')}</div><p>${a.mine?'報名的人會先看到這些。':`按「${a.dating?'想認識':'加入'}」就是同意這些默契。`}</p></section>`);
+    at.insertAdjacentHTML('afterend',`<section class="pact rv in"><h2>這場的默契</h2><div>${rows.map(([k,v])=>`<div class="kv"><small>${k}</small><span>${esc(v)}</span></div>`).join('')}</div><p>${a.mine?'報名的人會先看到這些。':`按「${a.dating?'想認識':'加入'}」就是同意這些默契。`}</p></section>`);
   };
 })();
 
@@ -5938,7 +6349,7 @@ const MEAL_SEED=[
   {id:314,title:'燒肉局，這攤我烤下攤你請',host:'鄭凱文',start:()=>nextDow(6,'18:30'),place:'中山',km:3.0,ang:335,fee:'禮尚往來',cap:6,n:5,say:'這攤大家分攤，飯後甜點輪流請。',pact:{ride:'捷運站集合',budget:'$800–1500',drink:'微醺',diet:'都吃',avoid:[],length:'看感覺續攤'}}
 ];
 Object.assign(POSTER_ART,{
-  311:{t:/鴛鴦鍋/,c:['#D7261E','#FFE9C9'],a:()=>`<svg viewBox="0 0 100 100" style="${pPos(10,50,`width:${PU(90)};height:${PU(90)}`)}"><circle cx="50" cy="50" r="50" fill="#111"/><circle cx="50" cy="50" r="42" fill="#FFE9C9"/><path d="M50 8a42 42 0 0 1 0 84a21 21 0 0 1 0-42a21 21 0 0 0 0-42Z" fill="#FF8A1F"/></svg><div class="pa" style="${pPos(4,0)}">火鍋</div>`},
+  311:{t:/鴛鴦鍋/,c:['#C4201A','#FFE9C9'],a:()=>`<svg viewBox="0 0 100 100" style="${pPos(10,50,`width:${PU(90)};height:${PU(90)}`)}"><circle cx="50" cy="50" r="50" fill="#111"/><circle cx="50" cy="50" r="42" fill="#FFE9C9"/><path d="M50 8a42 42 0 0 1 0 84a21 21 0 0 1 0-42a21 21 0 0 0 0-42Z" fill="#FF8A1F"/></svg><div class="pa" style="${pPos(4,0)}">火鍋</div>`},
   312:{t:/熱炒/,c:['#FFD60A','#111111'],a:()=>{let g='';[[6,52,'#D7261E'],[38,58,'#111'],[70,50,'#1B2BFF'],[20,86,'#111'],[54,92,'#D7261E'],[82,88,'#111']].forEach(([x,y,c])=>{g+=`<div class="pround" style="${pPos(x,y,`box-sizing:border-box;width:${PU(28)};height:${PU(28)};background:#FFF;border:${PU(7)} solid ${c}`)}"></div>`;});return g+`<div class="pa" style="${pPos(4,0)}">熱炒</div>`;}},
   313:{t:/早午餐/,c:['#1B2BFF','#FFFFFF'],a:()=>`<div style="${pPos(10,52,`width:${PU(84)};height:${PU(76)};background:#FFF;border-radius:48% 52% 44% 56%/56% 44% 56% 44%`)}"></div><div class="pround" style="${pPos(34,70,`width:${PU(36)};height:${PU(36)};background:#FFE500`)}"></div><div class="pa" style="${pPos(3,0,`font-size:${PU(31)};line-height:1;white-space:nowrap`)}">早午餐</div>`},
   314:{t:/燒肉/,c:['#111111','#FFFFFF'],a:()=>{let g='';for(let i=0;i<7;i++)g+=`<div style="left:${PU(4)};top:${PU(52+i*12)};width:${PU(96)};height:${PU(3)};background:#FFF"></div>`;[[12,58,0],[48,76,8],[20,100,-6]].forEach(([x,y,a])=>{g+=`<div style="${pPos(x,y,`width:${PU(40)};height:${PU(18)};border-radius:${PU(4)};background:#FF4F3A;transform:rotate(${a}deg)`)}"></div>`;});return g+`<div class="pa" style="${pPos(4,0)}">燒肉</div>`;}}
@@ -5959,7 +6370,7 @@ function posterSwitchMode(m,key){
   if(!posterCanAnim()){posterSetMode(m);return;}
   if(posterBusy)return;posterBusy=true;
   posterModeKeys(m);
-  const date=m==='date',ph=$('#phone'),strips=date?['#F2337A','#FF4F8B','#F2337A','#D81E66','#F2337A']:['#FFE500','#FFD60A','#FFE500','#FFC800','#FFE500'];
+  const date=m==='date',ph=$('#phone'),strips=date?['#CC1F60','#DA2369','#CC1F60','#B5175A','#CC1F60']:['#FFE500','#FFD60A','#FFE500','#FFC800','#FFE500'];
   const art=date
     ?`<div class="pm-art"><i class="pm-d1"></i><i class="pm-d2"></i><svg class="pm-lens" viewBox="0 0 280 180" aria-hidden="true"><defs><clipPath id="pmL"><circle cx="90" cy="90" r="90"/></clipPath></defs><circle cx="190" cy="90" r="90" fill="#FFE500" clip-path="url(#pmL)"/></svg></div>`
     :`<div class="pm-art">${[['#1B2BFF',4,44],['#D7261E',27,8],['#19E3C4',52,0],['#5A0B1E',76,12],['#111',98,50]].map(([c,x,y])=>`<i class="pm-bowl" style="left:${x/1.3}%;top:${y}%;--c:${c}"></i>`).join('')}</div>`;
@@ -6046,3 +6457,4 @@ tgBoot();
 <script>(function(){let n=0,tap=null;const early=e=>{tap=e.target.closest&&e.target.closest('[data-cv-go]')||tap;};document.addEventListener('click',early,true);
 const go=()=>{if(n++)return;const a=document.getElementById('tg-js'),s=document.createElement('script');s.textContent=a.textContent;a.remove();document.body.appendChild(s);document.removeEventListener('click',early,true);if(tap)tap.click();};
 requestAnimationFrame(()=>setTimeout(go));setTimeout(go,document.hidden?0:1000);})();</script>
+</body></html>
