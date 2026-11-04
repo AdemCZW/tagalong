@@ -836,6 +836,7 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 #phone:has(.lngate) .status{z-index:270;color:#111!important}
 #phone:has(.lngate) .status .bat{border-color:currentColor}#phone:has(.lngate) .status .bat::after{background:currentColor}
 .lg-note{margin:0;font-size:12px;color:#C8C8C8;line-height:1.5}
+.lg-back{position:absolute;right:var(--gut,20px);top:calc(var(--top,50px) + 6px);height:32px;padding:0 12px;border:2px solid #111;border-radius:9px;background:none;color:#111;font:900 13px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
 
 /* ===== feat/maplibre ===== */
 /* 附近: real map (MapLibre) in place of the radar canvas */
@@ -3510,18 +3511,19 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   /* the gate: with the backend on, nobody gets past it without a session. auth is 'checking' | 'in' | 'out' */
   let auth='out',door=null;
   const gateHTML=()=>`<section class="lngate" role="dialog" aria-modal="true" aria-label="登入 Tagalong">
-    <span class="lg-logo">Tagalong</span><b class="lg-big">登入</b>
+    ${$('.pcover')?'<button class="lg-back" data-ln-back aria-label="回到首頁">‹ 首頁</button>':''}<span class="lg-logo">Tagalong</span><b class="lg-big">登入</b>
     <div class="lg-foot"><p class="lg-lead">用 LINE 一鍵登入，就能報名和聊天。</p>
     <button class="ln-btn lg-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button>
     <p class="lg-note">只會用到你的 LINE 名稱，不會以你的名義發訊息。</p></div></section>`;
   function gate(on){
     const g=$('.lngate');
-    if(on){if(g)g.outerHTML=gateHTML();else $('#phone').insertAdjacentHTML('beforeend',gateHTML());const c=$('.pcover');if(c){c.remove();$('#phone').classList.remove('pcv');}}
+    if(on){if(g)g.outerHTML=gateHTML();else $('#phone').insertAdjacentHTML('beforeend',gateHTML());}
     else if(g)g.remove();
   }
   function setAuth(v){
     auth=v;if(!A.enabled)return;
-    if(v==='out'){door=null;gate(true);}
+    /* the cover stays open to everyone; the gate only stands between it and the app */
+    if(v==='out'){if(!$('.pcover'))gate(true);else if(door)gate(true);}
     else if(v==='in'){gate(false);if(door){const b=door;door=null;b.click();}}
   }
   async function start(){
@@ -3562,7 +3564,8 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   FX.click.push((b,d)=>{
     if(d.lnIn!==undefined){start();return true;}
     /* the cover's doors lead into the app: signed out they lead to the gate; still checking, the tap waits for the answer */
-    if(d.cvGo!==undefined&&A.enabled&&auth!=='in'){if(auth==='checking')door=b;else setAuth('out');return true;}
+    if(d.cvGo!==undefined&&A.enabled&&auth!=='in'){door=b;if(auth!=='checking')gate(true);return true;}
+    if(d.lnBack!==undefined){door=null;gate(false);return true;}
     if(d.lnOut!==undefined){logout();return true;}
     return false;
   });
