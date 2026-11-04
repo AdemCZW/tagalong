@@ -1040,6 +1040,23 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .stk-full{padding:0 0 10px}
 .stk .stk-full>[data-stk-k]{margin:0 10px;box-shadow:none}
 
+/* ===== feat/sync_actions ===== */
+/* a join button waiting for the server: it keeps the new label, dimmed, and takes no taps */
+[data-sa-busy]{opacity:.55;cursor:progress}
+.sa-why{margin:18px var(--gut,18px) 6px;font-size:17px;font-weight:900;line-height:1.4;color:var(--text)}
+.sfoot .cta.sa-line{background:#06C755}
+
+/* ===== feat/sync_events ===== */
+/* the one quiet line when the server could not be reached: under the mode tabs, in the poster's own ink */
+.se-note{position:absolute;left:var(--gut,20px);top:calc(var(--top,50px) + 80px);margin:0;font:600 11px/1.3 var(--f,"Noto Sans TC",sans-serif);opacity:.7;pointer-events:none}
+
+/* ===== feat/sync_social ===== */
+.bub.ss-pend{opacity:.55}
+.bub.ss-fail{opacity:.6;outline:1.5px solid #FF5A36;outline-offset:1px}
+.ss-retry{align-self:flex-end;margin:-2px 2px 4px;padding:2px 4px;border:0;background:none;color:#FF5A36;font:600 12px/1.3 inherit;cursor:pointer}
+.ss-lock b{color:var(--text)}
+.ss-one .opts{flex-wrap:wrap}
+
 /* ===== feat/trust ===== */
 .tr-card{margin:0 16px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh)}
 .tr-hd{display:flex;align-items:center;gap:12px}
@@ -2989,6 +3006,56 @@ try{wetInit();}catch(e){}
 setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().cat,'me'].concat(acts.map(a=>a.cat))).then(()=>{pglUpgrade(document);drawRadar();}).catch(e=>{PGL.err=String(e&&e.message||e);});}catch(e){PGL.err=String(e);}},60);
 }
 
+/* ===== feat/00api ===== */
+/* ===== feat/00api: the one way the app talks to the backend (prefix api) =====
+   Loaded first (file name sorts first). Every sync module uses TG_API, never fetch directly, so auth, errors, retries and
+   id mapping behave the same everywhere.
+   - Off under jsdom unless a test sets TG_API.enabled=true and stubs fetch; the seed data then stays as it is.
+   - The app keeps numeric ids (byId(+dataset.x) everywhere); server ids ("evt_…") map to local numbers via ids.local/ids.server.
+   - Errors are ApiError {status, code, message}; message is already user-facing Chinese. status 0 means offline/timeout. */
+(()=>{
+  const BASE='https://tagalong-api-staging.tmac19920626.workers.dev',TK='tg-auth',TIMEOUT=12e3;
+  const ls={get:k=>{try{return localStorage.getItem(k);}catch(e){return null;}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}};
+  const subs={};
+  const on=(ev,fn)=>{(subs[ev]=subs[ev]||[]).push(fn);};
+  const emit=(ev,...a)=>(subs[ev]||[]).forEach(f=>{try{f(...a);}catch(e){console.error(e);}});
+  class ApiError extends Error{constructor(status,code,message){super(message);this.status=status;this.code=code;}}
+
+  /* server id <-> local number. Local numbers start high so they never meet the seed ids (1-9, 101+, 301+). */
+  const toLocal=new Map(),toServer=new Map();let next=50000;
+  const ids={local(sid){if(sid==null)return null;let n=toLocal.get(sid);if(n==null){n=next++;toLocal.set(sid,n);toServer.set(n,sid);}return n;},server:n=>toServer.get(+n)||null};
+
+  let user=null;
+  const api={BASE,ApiError,on,emit,ids,
+    enabled:!/jsdom/i.test((typeof navigator!=='undefined'&&navigator.userAgent)||''),
+    get token(){return ls.get(TK);},
+    get user(){return user;},
+    signIn(token,u){ls.set(TK,token);user=u;emit('auth',u);},
+    signOut(){const had=!!ls.get(TK)||!!user;ls.set(TK,null);user=null;if(had)emit('auth',null);},
+    setUser(u){user=u;emit('auth',u);},
+    /* GET retries once on a network error or 5xx; writes never retry by themselves (a retried join could double-act) */
+    async req(path,opt={}){
+      const method=opt.method||(opt.body!==undefined?'POST':'GET'),t=ls.get(TK),tries=method==='GET'?2:1;
+      for(let i=0;i<tries;i++){
+        const ac=new AbortController(),timer=setTimeout(()=>ac.abort(),opt.timeout||TIMEOUT);
+        let r;
+        try{r=await fetch(BASE+path,{method,signal:ac.signal,headers:Object.assign({},opt.body!==undefined?{'Content-Type':'application/json'}:{},t?{Authorization:'Bearer '+t}:{}),body:opt.body!==undefined?JSON.stringify(opt.body):undefined});}
+        catch(e){clearTimeout(timer);if(i+1<tries){await new Promise(s=>setTimeout(s,600));continue;}emit('net',false);throw new ApiError(0,'offline','連線不穩，請稍後再試');}
+        clearTimeout(timer);emit('net',true);
+        if(r.status>=500&&i+1<tries){await new Promise(s=>setTimeout(s,600));continue;}
+        let d=null;try{d=r.status===204?null:await r.json();}catch(e){}
+        if(r.ok)return d;
+        const er=d&&d.error||{};
+        if(r.status===401&&t){api.signOut();}
+        throw new ApiError(r.status,er.code||'http_'+r.status,er.message||(r.status>=500?'伺服器暫時有問題，請稍後再試':'操作沒有成功'));
+      }
+    },
+    /* one toast for any failure; returns false so callers can `return TG_API.fail(e)` */
+    fail(e){toast(e&&e.message||'操作沒有成功');return false;}
+  };
+  window.TG_API=api;
+})();
+
 /* ===== feat/album ===== */
 /* ===== album: 活動相簿 + 回憶卡 =====
    Every past event has a private album (only people who went can see it). Me page shows a row of album covers;
@@ -3419,28 +3486,20 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
    Talks to the real backend (backend/, staging on Workers). Only sign-in is real for now; events are still the seed data.
    Flow: /auth/line/start gives LINE's URL with a one-time state -> the state is kept in sessionStorage -> LINE sends the
    browser back here with ?code&state -> the state must match (stops someone logging you into their account) -> the
-   backend swaps the code for our token. The token lives in localStorage; anything failing leaves you signed out, nothing else breaks. */
+   backend swaps the code for our token, kept by TG_API. Anything failing leaves you signed out, nothing else breaks. */
 (()=>{
-  const API='https://tagalong-api-staging.tmac19920626.workers.dev',TK='tg-auth',SK='tg-line-state';
-  const get=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
-  const set=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}};
+  const SK='tg-line-state',A=TG_API;
   const sget=k=>{try{return sessionStorage.getItem(k);}catch(e){return null;}};
   const sset=(k,v)=>{try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v);}catch(e){}};
-  let user=null,busy=false;
-
-  async function call(path,opt={}){
-    const t=get(TK),r=await fetch(API+path,{method:opt.body!==undefined||opt.post?'POST':'GET',headers:Object.assign({},opt.body!==undefined?{'Content-Type':'application/json'}:{},t?{Authorization:'Bearer '+t}:{}),body:opt.body!==undefined?JSON.stringify(opt.body):undefined});
-    let d=null;try{d=await r.json();}catch(e){}
-    if(!r.ok)throw Object.assign(new Error(d&&d.error&&d.error.message||'連線失敗，請稍後再試'),{status:r.status});
-    return d;
-  }
+  let busy=false;
+  const call=(path,opt)=>A.req(path,opt);
   const paint=()=>{if(st.tab==='me')renderMe();};
   const fail=e=>toast(e&&e.message||'LINE 登入失敗，請再試一次');
 
   async function start(){
     if(busy)return;busy=true;paint();
     try{
-      const {authorize_url}=await call('/auth/line/start',{post:true});
+      const {authorize_url}=await call('/auth/line/start',{method:'POST'});
       sset(SK,new URL(authorize_url).searchParams.get('state'));
       api.go(authorize_url);
     }catch(e){busy=false;paint();fail(e);}
@@ -3453,23 +3512,23 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     if(err){toast('已取消 LINE 登入');return;}
     if(!code||!state||state!==mine){toast('登入已逾時，請重新用 LINE 登入');return;}
     busy=true;paint();
-    try{const d=await call('/auth/line/callback',{body:{code,state}});set(TK,d.token);user=d.user;toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
+    try{const d=await call('/auth/line/callback',{body:{code,state}});A.signIn(d.token,d.user);toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
     catch(e){fail(e);}
     busy=false;paint();
   }
   async function restore(){
-    if(!get(TK))return;
-    try{user=await call('/me');}catch(e){if(e.status===401||e.status===403)set(TK,null);user=null;}
+    if(!A.token)return;
+    try{A.setUser(await call('/me'));}catch(e){if(e.status===403)A.signOut();}
     paint();
   }
   async function logout(){
-    try{await call('/auth/logout',{post:true});}catch(e){}
-    set(TK,null);user=null;paint();toast('已登出');
+    try{await call('/auth/logout',{method:'POST'});}catch(e){}
+    A.signOut();paint();toast('已登出');
   }
 
-  FX.meTop.push(()=>user
+  FX.meTop.push(()=>{const user=A.user;return user
     ?`<div class="ln-me rv"><span class="ln-mk" aria-hidden="true">LINE</span><span class="ln-t"><b>${esc(user.display_name)}</b><small>已用 LINE 登入</small></span><button class="ln-out" data-ln-out>登出</button></div>`
-    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><button class="ln-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button></div>`);
+    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><button class="ln-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button></div>`;});
   FX.click.push((b,d)=>{
     if(d.lnIn!==undefined){start();return true;}
     if(d.lnOut!==undefined){logout();return true;}
@@ -3481,9 +3540,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       /* coming back from LINE: skip the cover and land on 我, where the result shows */
       const c=$('.pcover');if(c)c.remove();$('#phone').classList.remove('pcv');
       setTimeout(()=>{switchTab('me');finish(q);},0);
-    }else restore();
+    }else if(A.enabled)restore();
   });
-  const api=window.TG_LINE={start,finish,restore,logout,go:u=>location.assign(u),get user(){return user;},API,TK,SK};
+  const api=window.TG_LINE={start,finish,restore,logout,go:u=>location.assign(u),get user(){return A.user;},SK};
 })();
 
 /* ===== feat/maplibre ===== */
@@ -4340,6 +4399,680 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   });
 
   window.TG_STK={group,OPEN,get sources(){return src;}};
+})();
+
+/* ===== feat/sync_actions ===== */
+/* ===== feat/sync_actions: writes for server events (prefix sa) =====
+   Only for events that came from the server (a.sid) and only when TG_API is on; demo rows keep the in-memory flow.
+   Every write: change the sets at once, lock that event's button, send, then take the server's answer (status, seats,
+   queue place) or put everything back and say why. Taps that core or other modules would handle locally are caught
+   before them: FX.tap for the join button, FX.click for 送出/收藏, a capturing listener for buttons other modules own
+   (遞補 確認/放棄, 帶朋友 stepper, 發布) and for the comment form. */
+(()=>{
+  const A=TG_API,busy=new Set(),svBusy=new Set();
+  const live=a=>!!(a&&a.sid&&A.enabled);
+  const signed=()=>!!A.token;
+  const BF=()=>window.TG_BF,PO=()=>window.TG_PO&&TG_PO.PO;
+  /* server codes whose own message is not the clearest thing to show */
+  const MSG={unauthorized:'登入已過期，請重新用 LINE 登入',not_found:'找不到這個活動，可能已經刪除',
+    offer_expired:'候補名額已逾時，已讓給下一位',no_offer:'這個名額已經不在了',not_participant:'你已經不在這個活動裡了'};
+  /* our local picture was out of date: ask the read side to fetch the event again */
+  const STALE=new Set(['not_participant','already_joined','already_applied','no_offer','offer_expired','pact_required','full','event_closed','event_started']);
+  const sync=a=>{try{const S=window.TG_SYNC_EVENTS;if(S&&S.refreshOne){const p=S.refreshOne(a.id);if(p&&p.catch)p.catch(()=>{});}}catch(e){}};
+  const hd=a=>headline(a)[0];
+
+  /* ----- sign-in prompt ----- */
+  $('#sh-filter').insertAdjacentHTML('beforebegin','<section class="sheet short form" id="sh-sa" role="dialog" aria-modal="true" aria-label="登入"><div class="grab"></div><div class="sheet-in" id="saIn"></div></section>');
+  function askSignIn(why){
+    $('#saIn').innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>先登入</h2><span></span></div>
+      <p class="sa-why">${esc(why||'登入後才能報名')}</p><p class="hint pad">用 LINE 登入就好，不用另外註冊。目前的內容不會送出。</p>
+      <div class="sfoot"><button class="cta sa-line" data-sa-line>用 LINE 登入</button></div>`;
+    showSheet('#sh-sa');
+  }
+  function oops(e,a){
+    toast(e&&MSG[e.code]||e&&e.message||'操作沒有成功');
+    if(e&&e.status===401)setTimeout(()=>askSignIn('登入已過期，請重新登入'),0);
+    if(a&&e&&STALE.has(e.code))sync(a);
+  }
+
+  /* ----- local state: snapshot / restore / take the server's answer ----- */
+  const put=(s,id,on)=>on?s.add(id):s.delete(id);
+  function clearOffer(id){const B=BF();if(B&&B.OF[id]){clearTimeout(B.OF[id].t);delete B.OF[id];}}
+  function setOffer(id,until){const B=BF();if(!B)return;clearOffer(id);until=+until||Date.now()+30*6e4;B.OF[id]={until,t:setTimeout(()=>B.expire(id),Math.max(0,until-Date.now()))};}
+  function snap(a){const id=a.id,B=BF(),P=PO();
+    return {j:joined.has(id),p:pending.has(id),w:waitl.has(id),n:a.n,wl:a.wl,cap:a.cap,of:B&&B.OF[id]?B.OF[id].until:0,po:P&&P[id]?{n:P[id].n,names:P[id].names.slice()}:null};}
+  function restore(a,s){const id=a.id,P=PO();
+    put(joined,id,s.j);put(pending,id,s.p);put(waitl,id,s.w);a.n=s.n;a.wl=s.wl;a.cap=s.cap;
+    if(s.of)setOffer(id,s.of);else clearOffer(id);
+    if(P){if(s.po)P[id]=s.po;else delete P[id];}}
+  function apply(a,r){
+    if(!r)return;const id=a.id,st=r.status;
+    if(st){joined.delete(id);pending.delete(id);waitl.delete(id);clearOffer(id);
+      if(st==='joined'){joined.add(id);ensureChat(a);}
+      else if(st==='pending')pending.add(id);
+      else if(st==='waitlisted')waitl.add(id);
+      else if(st==='offered'){waitl.add(id);setOffer(id,r.offer_expires_at);}}
+    if(r.capacity)a.cap=r.capacity;
+    /* core counts me (and plusone my friends) on top of a.n */
+    if(r.seats_taken!=null)a.n=Math.max(0,r.seats_taken-(joined.has(id)&&!a.mine?1+(+r.plus_count||0):0));
+    if(r.waitlist_count!=null)a.wl=st==='waitlisted'&&r.waitlist_position?r.waitlist_position-1:r.waitlist_count;
+  }
+  /* one write: optimistic change, button locked, then the answer or a rollback */
+  async function write(a,optimistic,path,opt,ok,bad,pre){
+    const sn=pre||snap(a);busy.add(a.id);optimistic();refresh();
+    let r;
+    try{r=await A.req(path,opt);}
+    catch(e){restore(a,sn);busy.delete(a.id);if(bad)bad(e);refresh();oops(e,a);return null;}
+    busy.delete(a.id);
+    try{ok(r);}catch(e){console.error(e);}
+    refresh();sync(a);return r;
+  }
+
+  /* ----- join / apply / waitlist ----- */
+  const pactOn=a=>{try{return !!pactOf(a);}catch(e){return !!(a.pact||optsOf(a).pact);}};
+  function joinBody(a,info){
+    const b={};
+    if(pactOn(a))b.pact_accepted=true;   /* the event page says joining means agreeing to the pact */
+    if(info.msg)b.message=info.msg;
+    if(info.emg)b.emergency={name:info.emg.name,phone:info.emg.phone,relation:info.emg.rel||'其他'};
+    if(info.plus&&info.plus.n)b.plus_names=Array.from({length:info.plus.n},(_,i)=>(info.plus.names[i]||'').trim()||`朋友 ${i+1}`);
+    return b;
+  }
+  const KIND={joined:'join',pending:'apply',waitlisted:'wl'};
+  function join(a,s,info){
+    const id=a.id;
+    return write(a,()=>put(s==='join'?joined:s==='apply'?pending:waitl,id,true),`/events/${a.sid}/join`,{body:joinBody(a,info)},r=>{
+      apply(a,r);
+      if(r.status==='joined')toast(`已加入 · ${whenLabel(a.start)} ${hm(a.start)} 見`);
+      else if(r.status==='pending'){pushNotice({k:'wait',txt:`已送出「${hd(a)}」的加入申請，等團主回覆`,id});toast('已送出申請，等團主同意');}
+      else if(r.status==='waitlisted'){pushNotice({k:'wait',txt:`你在「${hd(a)}」候補第 ${wlPos(a)} 位，有人退出會通知你`,id});toast(s==='wl'?`已排候補 · 第 ${wlPos(a)} 位`:`剛好額滿了，已幫你排候補第 ${wlPos(a)} 位`);}
+      if(KIND[r.status])fxRun('joined',a,KIND[r.status],info);
+    },e=>{
+      /* the server knows this event needs a contact: open the sheet that asks for one */
+      if(e.code==='emergency_required'){a.opts=Object.assign({},a.opts,{emg:true});setTimeout(()=>{if(jstate(a)===s)openJoin(id,s);},0);}
+    });
+  }
+  function leave(a,s){
+    const was=joined.has(a.id);
+    return write(a,()=>{joined.delete(a.id);pending.delete(a.id);waitl.delete(a.id);clearOffer(a.id);},`/events/${a.sid}/leave`,{method:'POST'},r=>{
+      apply(a,r);if(was)fxRun('left',a);
+      toast(s==='in'?(online(a)?'已退出 · 依退費規則處理':'已退出'):s==='pending'?'已撤回申請':'已退出候補');
+    });
+  }
+  function answerOffer(a,yes){
+    if(busy.has(a.id))return;
+    if(!signed()){askSignIn('登入後才能確認名額');return;}
+    if(openSheet&&openSheet.id==='sh-bf')closeSheet();
+    write(a,()=>{clearOffer(a.id);waitl.delete(a.id);if(yes)joined.add(a.id);},`/events/${a.sid}/offer/${yes?'accept':'decline'}`,{method:'POST'},r=>{
+      apply(a,r);
+      if(yes){pushNotice({k:'ok',txt:`遞補成功「${hd(a)}」`,id:a.id});toast('遞補成功，你已加入');}else toast('已放棄，名額會給下一位');
+    },e=>{if(e.code==='offer_expired'||e.code==='no_offer')setTimeout(()=>{clearOffer(a.id);waitl.delete(a.id);refresh();},0);});
+  }
+
+  FX.tap.push((a,s)=>{
+    if(!live(a)||s==='mine'||s==='full'||s==='cancelled')return false;
+    if(busy.has(a.id))return true;
+    if(!signed()){askSignIn(s==='in'||s==='pending'||s==='wait'?'登入後才能更改報名':'登入後才能報名這個活動');return true;}
+    if(s==='in'||s==='pending'||s==='wait'){leave(a,s);return true;}
+    if(s==='join'||s==='apply'||s==='wl'){if(needsSheet(a,s))return false;join(a,s,{});return true;}
+    return false;
+  });
+  /* locked while its request runs: the optimistic button, disabled */
+  FX.pill.push((a,s,kind,cls)=>{
+    if(!busy.has(a.id))return '';
+    busy.delete(a.id);let h;try{h=kind==='mini'?miniJoin(a):joinPill(a,cls);}finally{busy.add(a.id);}
+    return h.replace('<button','<button disabled aria-busy="true" data-sa-busy');
+  });
+
+  FX.click.push((b,d)=>{
+    if(d.saLine!==undefined){closeSheet();if(window.TG_LINE)TG_LINE.start();return true;}
+    /* the join sheet's 送出: same fields core collects, sent to the server instead of commitJoin */
+    if(d.jgo!==undefined&&jn&&live(byId(jn.id))){
+      if($('#jnGo').disabled)return true;
+      const a=byId(jn.id),s=jn.s;
+      if(busy.has(a.id))return true;
+      if(!signed()){askSignIn('登入後才能報名這個活動');return true;}
+      const info={};if(jn.emg)info.emg={name:$('#jnName').value.trim(),phone:$('#jnPhone').value.trim(),rel:jn.rel};
+      const m=$('#jnMsg');if(m&&m.value.trim())info.msg=m.value.trim();
+      fxRun('joinInfo',info,jn);
+      if(info.emg)myEmg=info.emg;
+      closeSheet();jn=null;join(a,s,info);return true;
+    }
+    if(d.save!==undefined&&+d.save){
+      const a=byId(+d.save);if(!live(a))return false;
+      if(svBusy.has(a.id))return true;
+      if(!signed()){askSignIn('登入後才能收藏活動');return true;}
+      const id=a.id,was=saved.has(id);svBusy.add(id);put(saved,id,!was);toast(was?'已移除收藏':'已加入收藏');refresh();
+      A.req(`/events/${a.sid}/save`,{method:was?'DELETE':'PUT'}).catch(e=>{put(saved,id,was);refresh();oops(e,a);}).finally(()=>svBusy.delete(id));
+      return true;
+    }
+    return false;
+  });
+
+  /* ----- buttons other modules handle first: caught on the way down ----- */
+  document.addEventListener('click',e=>{
+    if(!A.enabled)return;
+    const b=e.target&&e.target.closest&&e.target.closest('button');if(!b||b.disabled)return;const d=b.dataset;
+    if(b.id==='crPost'){e.stopPropagation();post();return;}
+    const oid=d.bfOk||d.bfNo;
+    if(oid){const a=byId(+oid);if(!live(a))return;e.stopPropagation();answerOffer(a,!!d.bfOk);return;}
+    if(d.poDs){
+      const a=byId(+d.poDs.split(':')[0]);if(!live(a))return;
+      if(busy.has(a.id)){e.stopPropagation();return;}
+      const pre=snap(a);setTimeout(()=>plusChanged(a,pre),0);
+    }
+  },true);
+  /* 帶朋友 stepper on the event page: plusone has already changed its count; send it */
+  function plusChanged(a,pre){
+    const P=PO();if(!P)return;const f=P[a.id],n=f?f.n:0;if(n===(pre.po?pre.po.n:0))return;
+    const names=Array.from({length:n},(_,i)=>(f.names[i]||'').trim()||`朋友 ${i+1}`);
+    write(a,()=>{},`/events/${a.sid}/plus`,{method:'PUT',body:{names}},r=>apply(a,Object.assign({status:'joined'},r)),null,pre);
+  }
+
+  /* ----- comments ----- */
+  document.addEventListener('submit',e=>{
+    if(!e.target||e.target.id!=='cmForm')return;const a=byId(curDetail);if(!live(a))return;
+    e.preventDefault();e.stopPropagation();
+    const inp=$('#cmInput'),t=inp.value.trim();if(!t)return;
+    if(!signed()){askSignIn('登入後才能留言');return;}
+    const m={u:((A.user&&A.user.display_name)||'我')[0],txt:t,likes:0,ago:0,me:true},redraw=()=>{if(curDetail!==a.id)return;renderDetail();$$('#detailIn .rv').forEach(x=>x.classList.add('in'));};
+    a.cm.push(m);moreN.cm=Math.max(moreN.cm,a.cm.length);redraw();const sc=$('#detailIn');sc.scrollTop=sc.scrollHeight;
+    A.req(`/events/${a.sid}/comments`,{body:{body:t}}).then(r=>{m.sid=r&&r.id;toast('已留言');}).catch(er=>{
+      const i=a.cm.indexOf(m);if(i>=0)a.cm.splice(i,1);redraw();
+      const x=$('#cmInput');if(x&&curDetail===a.id&&!x.value){x.value=t;$('#cmSend').disabled=false;}
+      oops(er,a);
+    });
+  },true);
+
+  /* ----- composer -> POST /events ----- */
+  const LV={'新手友善':'beginner','有點經驗':'some','進階':'advanced','不限':'any'},VN={'室內':'indoor','戶外':'outdoor','公開場所':'public'};
+  const PACT={ride:{'各自到現場':'own','捷運站集合':'station','可順路接送':'pickup','有車可載':'car'},budget:{'$300 以下':'lt300','$300–800':'300_800','$800–1500':'800_1500','$1500 以上':'gt1500'},
+    drink:{'不喝酒':'none','微醺':'light','喜歡喝':'likes'},diet:{'都吃':'any','鍋邊素':'flexi','蛋奶素':'lacto','全素':'vegan'},
+    avoid:{'甲殼海鮮':'shellfish','牛':'beef','辣':'spicy','香菜':'cilantro'},length:{'快閃 1–1.5 小時':'quick','半日 2–3 小時':'half','看感覺續攤':'open','全日':'full'}};
+  function pactBody(p){
+    if(!p)return null;const o={avoid:(p.avoid||[]).map(x=>PACT.avoid[x]).filter(Boolean)};
+    ['ride','budget','drink','diet','length'].forEach(k=>{if(p[k]&&PACT[k][p[k]])o[k]=PACT[k][p[k]];});
+    return Object.keys(o).length>1||o.avoid.length?o:null;
+  }
+  const mode=()=>{try{return posterMode==='date'?'date':'group';}catch(e){return 'group';}};
+  function createBody(o){
+    const ft=o.feeType,amt=crAmt(),place=$('#crPlace').value.trim();
+    return {mode:mode(),category:crCat,title:$('#crTitle').value.trim(),starts_at:crStart(),ends_at:crEnd(),place_name:place,
+      address:$('#crAddr').value.trim(),description:$('#crDesc').value.trim(),capacity:cap,min_people:Math.max(2,Math.min(minN,cap)),
+      fee_type:ft,fee_amount:(ft==='fixed'||ft==='aa')&&amt?amt:null,fee_includes:o.inc||'',pay_method:ft==='fixed'?o.pay:'cash',refund_policy:o.refund,
+      level:LV[o.level]||'beginner',min_age:o.age==='18+'?18:0,women_only:!!o.women,verified_only:!!o.verified,approval_required:!!o.approve,waitlist_enabled:!!o.wait,
+      risk:o.risk,venue:VN[o.venue]||'indoor',gear:o.gear||'',rain_rule:o.rain||'',weather_watch:!!o.wx,emergency_required:!!o.emg,insurance_note:!!o.ins,
+      /* the server has public and link-only; 追蹤者 is kept off the public feed the same way */
+      join_deadline_minutes:+o.deadline||0,visibility:o.vis==='公開'?'public':'link',plus_limit:Math.max(0,Math.min(2,+o.plus||0)),pact:pactBody(o.pact)};
+  }
+  let posting=false;
+  async function post(){
+    const btn=$('#crPost');if(posting||btn.disabled)return;
+    if(!signed()){askSignIn('登入後才能發起活動，填好的內容會留著');return;}
+    const o=crOpts(),b=createBody(o),fee=crFeeText(),c0=cap,m0=minN,t0=btn.textContent;
+    posting=true;btn.disabled=true;btn.textContent='發布中…';
+    let r;
+    try{r=await A.req('/events',{body:b});}
+    catch(e){posting=false;btn.textContent=t0;crCheck();oops(e);const m=$('#crMiss');m.textContent=MSG[e.code]||e.message||'發布沒有成功';m.classList.remove('ok');return;}
+    posting=false;btn.textContent=t0;
+    const id=A.ids.local(r.id),place=b.place_name;
+    let a=byId(id);
+    if(!a){a={id,sid:r.id,cat:b.category,title:b.title,host:(A.user&&A.user.display_name)||'安安',hr:4.9,att:96,start:b.starts_at,end:b.ends_at,place,km:.3,ang:Math.round(Math.random()*360),fee,
+      cap:r.capacity||c0,minN:r.min_people||m0,n:r.seats_taken||1,addr:b.address||place,say:b.description||'第一次發起這個，歡迎一起來。',mine:true,ago:0,cm:[],opts:o};acts.push(a);}
+    ensureChat(a);fxRun('post',a);st.fresh=id;st.seg='all';
+    const rule={'每週':'weekly','隔週':'biweekly'}[o.repeat];
+    if(rule)A.req(`/events/${r.id}/series`,{body:{rule}}).catch(e=>toast(e.message||'固定團設定沒有成功'));
+    closeSheet();while(ovStack.length)closeOv();switchTab('home');
+    const lst=$('#allList');if(lst){$$('#homeBody .rv').forEach(x=>x.classList.add('in'));$('#s-home').scrollTop=Math.max(0,lst.offsetTop-120);}
+    crReset();crCheck();toast('已發布');sync(a);
+  }
+
+  window.TG_SYNC_ACTIONS={busy,svBusy,apply,join,leave,answerOffer,askSignIn,createBody,pactBody,get posting(){return posting;}};
+})();
+
+/* ===== feat/sync_events ===== */
+/* ===== feat/sync_events: events come from the backend (prefix se) =====
+   Read path only. At boot GET /events (both modes, every page up to a cap) replaces the seed rows; opening an event fetches its
+   detail (address for joined people, my_status, pact, seats) and comments. Until it answers the seed stays on screen; if it
+   fails the seed stays and one quiet line says so. Under jsdom TG_API is off, so the tests see the seed as before.
+   Seed art: theme/poster.js POSTER_ART is keyed by the seed ids, so a server event whose title equals a seed row's title (same
+   mode) keeps that seed's id. TG_API.ids is taught the pair, so ids.local(sid) and ids.server(a.id) agree with a.id/a.sid. */
+(()=>{
+  const A=TG_API,PAGE=50,MAX_PAGES=10,ME=[121.5354,25.0330];
+  const VENUE={indoor:'室內',outdoor:'戶外',public:'公開場所'},LEVEL={beginner:'新手友善',some:'有點經驗',advanced:'進階',any:'不限'},VIS={public:'公開',link:'連結'};
+  /* server enum order = the order of PACT_ROWS' labels in theme/poster.js */
+  const PACT={ride:[['own','station','pickup','car'],['各自到現場','捷運站集合','可順路接送','有車可載']],budget:[['lt300','300_800','800_1500','gt1500'],['$300 以下','$300–800','$800–1500','$1500 以上']],
+    drink:[['none','light','likes'],['不喝酒','微醺','喜歡喝']],diet:[['any','flexi','lacto','vegan'],['都吃','鍋邊素','蛋奶素','全素']],
+    avoid:[['shellfish','beef','spicy','cilantro'],['甲殼海鮮','牛','辣','香菜']],length:[['quick','half','open','full'],['快閃 1–1.5 小時','半日 2–3 小時','看感覺續攤','全日']]};
+  const ok={group:false,date:false},failed={group:false,date:false};
+  let gen=0,loadedTok=null,seeds=null;
+  const mins=t=>Math.max(0,Math.round((Date.now()-t)/6e4));
+  const curMode=()=>{try{return posterMode;}catch(e){return 'group';}};
+
+  /* seed id pairing: wraps the two lookups instead of editing 00api.js */
+  const pinL=new Map(),pinS=new Map(),L=A.ids.local,S=A.ids.server;
+  A.ids.local=sid=>sid!=null&&pinL.has(sid)?pinL.get(sid):L(sid);
+  A.ids.server=n=>pinS.get(+n)||S(n);
+  /* title -> seed id, read once before anything is replaced (the date and meal seeds live in theme/poster.js) */
+  function seedMap(){
+    if(seeds)return seeds;const m=new Map(),ids=new Set(),add=(s,date)=>{m.set((date?'d|':'g|')+s.title,s.id);ids.add(s.id);};
+    acts.forEach(a=>{if(!a.sid&&(a.id<100||a.id>300&&a.id<400))add(a,a.dating);});
+    try{DATE_SEED.forEach(s=>add(s,1));MEAL_SEED.forEach(s=>add(s,0));}catch(e){}
+    return seeds={m,ids};
+  }
+  function localId(sid,title,date){
+    if(pinL.has(sid))return pinL.get(sid);
+    const s=seedMap().m.get((date?'d|':'g|')+title);
+    return s!=null&&!pinS.has(s)?s:A.ids.local(sid);
+  }
+
+  const feeText=r=>{const v=r.fee_amount;return r.fee_type==='treat'?'I buy U':r.fee_type==='split'?'各付各的':r.fee_type==='swap'?'禮尚往來':
+    r.fee_type==='aa'?(v?`AA 約 $${v}`:'AA 制'):r.fee_type==='fixed'?(v?`每人 $${v}`:'每人固定'):'免費';};
+  /* distance and bearing from the app's fixed "you", the same point feat/maplibre.js places pins around */
+  function kmAng(lat,lng){
+    if(lat==null||lng==null)return null;
+    const me=window.TG_ML&&TG_ML.ME_LL||ME,r=Math.PI/180,dx=(lng-me[0])*Math.cos(me[1]*r)*111.32,dy=(lat-me[1])*110.57;
+    return [Math.max(.1,Math.round(Math.hypot(dx,dy)*10)/10),Math.round((Math.atan2(dx,dy)/r+360)%360)];
+  }
+  function pactOf(p){
+    if(!p)return null;const o={};
+    Object.entries(PACT).forEach(([k,[en,zh]])=>{const v=p[k];if(Array.isArray(v))o[k]=v.map(x=>zh[en.indexOf(x)]).filter(Boolean);else if(v!=null&&en.includes(v))o[k]=zh[en.indexOf(v)];});
+    return o;
+  }
+  const optsOf_=r=>({venue:VENUE[r.venue]||'室內',pay:r.pay_method||'cash',refund:r.refund_policy||'24h',level:LEVEL[r.level]||'新手友善',age:r.min_age>=18?'18+':'不限',
+    risk:r.risk||'low',vis:VIS[r.visibility]||'公開',deadline:String(r.join_deadline_minutes||0),repeat:'不重複',wait:!!r.waitlist_enabled,approve:!!r.approval_required,
+    verified:!!r.verified_only,women:!!r.women_only,emg:!!r.emergency_required,ins:!!r.insurance_note,wx:!!r.weather_watch,gear:r.gear||'',inc:r.fee_includes||'',rain:r.rain_rule||'',plus:r.plus_limit||0});
+
+  /* one server row (list or detail) -> the seed row shape; stores nothing (put does) */
+  function map(r){
+    const date=r.mode==='date',id=localId(r.id,r.title,date),prev=byId(id),own=prev&&prev.sid===r.id?prev:null;
+    const h=r.host||{},rep=h.reputation||{},u=A.user,mine=!!u&&!!h.id&&h.id===u.id,st=r.my_status||null;
+    const keepAddr=!!(own&&own.addrOk&&(st==='joined'||mine)),seen=(rep.attended||0)+(rep.no_show||0),exact=r.lat!=null?kmAng(r.lat,r.lng):null,loc=exact||kmAng(r.public_lat,r.public_lng);
+    const name=h.display_name||'團主',given=[...name].length>=3?[...name].slice(1).join(''):name;
+    const a={id,sid:r.id,hostId:h.id||null,cat:r.category,title:r.title,host:name,
+      hr:rep.avg_stars!=null?Math.round(rep.avg_stars*10)/10:0,hrNew:!!rep.is_new,att:seen?Math.round(100*(rep.attended||0)/seen):100,verified:!!h.verified,
+      start:r.starts_at,end:r.ends_at,place:r.place_name,km:loc?loc[0]:own?own.km:3,ang:loc?loc[1]:own?own.ang:(r.id.length*47)%360,
+      fee:feeText(r),cap:r.capacity,n:Math.max(0,(r.seats_taken||0)-(st==='joined'&&!mine?1+(+r.my_plus_count||0):0)),minN:r.min_people,wl:Math.max(0,(r.waitlist_count||0)-(st==='waitlisted'||st==='offered'?1:0)),
+      /* lists never carry the address: one learned from the detail is kept while you are still in */
+      addr:r.address||(keepAddr?own.addr:r.place_name),addrOk:!!r.address||keepAddr,
+      say:r.description||r.title,mine,myStatus:st,offerEnds:r.my_offer_expires_at||null,ago:mins(r.created_at||Date.now()),cm:own?own.cm:[],reqs:own?own.reqs:undefined,
+      opts:optsOf_(r),pact:r.pact!==undefined?pactOf(r.pact):own?own.pact:null,
+      dating:date,sex:date?h.gender||'x':undefined,who:date?(h.age!=null?`${given}，${h.age}`:given):undefined,bio:date?h.bio||'':undefined};
+    return a;
+  }
+  function setStatus(a){
+    [joined,pending,waitl].forEach(s=>s.delete(a.id));if(a.mine)return;
+    const st=a.myStatus;if(st==='joined')joined.add(a.id);else if(st==='pending')pending.add(a.id);else if(st==='waitlisted'||st==='offered')waitl.add(a.id);
+    /* an offered seat needs the 確認遞補 prompt that feat/backfill shows; sync_actions knows how to register it */
+    if(st==='offered'&&a.offerEnds&&window.TG_SYNC_ACTIONS)TG_SYNC_ACTIONS.apply(a,{status:'offered',offer_expires_at:a.offerEnds});
+  }
+  /* in place: the wall and lists keep references to row objects, so an event that is already there is updated, not swapped */
+  function put(a){if(seedMap().ids.has(a.id)&&!pinS.has(a.id)){pinL.set(a.sid,a.id);pinS.set(a.id,a.sid);}const old=byId(a.id);if(old){Object.assign(old,a);a=old;}else acts.push(a);setStatus(a);return a;}
+  /* maps a server row, stores it in acts (same object if it is there already) and syncs joined/pending/waitl; caller re-renders */
+  const fromServer=r=>put(map(r));
+
+  /* a mode's first page replaces its seed rows and older server rows; later pages only add */
+  function swap(mode,rows,first,sv){
+    const date=mode==='date',list=rows.map(map),ids=new Set(list.map(a=>a.id)),seedIds=seedMap().ids;
+    if(first)for(let i=acts.length-1;i>=0;i--){const a=acts[i];
+      if(!!a.dating===date&&(a.sid||seedIds.has(a.id))&&!ids.has(a.id)){acts.splice(i,1);[joined,pending,waitl,saved].forEach(s=>s.delete(a.id));}}
+    list.forEach(a=>{put(a);if(sv){saved.delete(a.id);if(sv.has(a.sid))saved.add(a.id);}});
+  }
+  async function savedSids(){
+    const out=new Set();let cursor=null;
+    for(let p=0;p<MAX_PAGES;p++){const d=await A.req(`/events/saved/list?limit=${PAGE}${cursor?'&cursor='+encodeURIComponent(cursor):''}`);(d.events||[]).forEach(e=>out.add(e.id));cursor=d.next_cursor;if(!cursor)break;}
+    return out;
+  }
+  async function loadMode(mode,g,sv){
+    let cursor=null,first=true;
+    try{
+      for(let p=0;p<MAX_PAGES;p++){
+        const d=await A.req(`/events?mode=${mode}&limit=${PAGE}${cursor?'&cursor='+encodeURIComponent(cursor):''}`);
+        if(g!==gen)return false;
+        swap(mode,d.events||[],first,sv);first=false;ok[mode]=true;failed[mode]=false;paint();
+        cursor=d.next_cursor;if(!cursor)break;
+      }
+      return true;
+    }catch(e){if(g===gen&&first){failed[mode]=true;paint();}return false;}
+  }
+  async function load(){
+    if(!A.enabled)return false;
+    const g=++gen;seedMap();loadedTok=A.token;
+    /* signed out: the seed's saved marks go; signed in: they come from the server. A failed read leaves saved alone */
+    let sv;if(A.token){try{sv=await savedSids();}catch(e){sv=undefined;}}else sv=new Set();
+    if(g!==gen)return false;
+    const r=await Promise.all(['group','date'].map(m=>loadMode(m,g,sv)));
+    return r.every(Boolean);
+  }
+  function paint(){refresh();note();}
+  function note(){
+    const top=$('#s-home .ptop');if(!top)return;const el=top.querySelector('.se-note'),m=curMode(),on=A.enabled&&failed[m]&&!ok[m];
+    if(!on){if(el)el.remove();return;}
+    if(!el)top.insertAdjacentHTML('beforeend','<p class="se-note" role="status">連不上伺服器，先顯示示意資料</p>');
+  }
+
+  function setComments(a,list){
+    const u=A.user;
+    a.cm=list.map(c=>{const nm=c.user&&c.user.display_name||'？';return {id:c.id,u:[...nm][0],name:nm,txt:c.body,likes:Math.max(0,(c.like_count||0)-(c.liked_by_me?1:0)),ago:mins(c.created_at),me:!!u&&!!c.user&&c.user.id===u.id};});
+    [...cmLiked].forEach(k=>{if(k.startsWith(a.id+'-'))cmLiked.delete(k);});
+    list.forEach((c,i)=>{if(c.liked_by_me)cmLiked.add(a.id+'-'+i);});
+  }
+  /* detail + comments for one event; a 404 means it is gone for this viewer (cancelled, blocked, women only) */
+  async function refreshOne(localId){
+    const a0=byId(+localId);if(!a0||!a0.sid||!A.enabled)return null;
+    const sid=a0.sid,p=encodeURIComponent(sid);
+    try{
+      const [d,c]=await Promise.all([A.req('/events/'+p),A.req(`/events/${p}/comments?limit=50`).catch(()=>null)]);
+      const a=fromServer(d);if(c)setComments(a,c.comments||[]);
+      refresh();return a;
+    }catch(e){
+      if(e&&e.status===404){
+        const a=byId(+localId);if(a&&a.sid===sid){acts.splice(acts.indexOf(a),1);[joined,pending,waitl,saved].forEach(s=>s.delete(a.id));}
+        if(curDetail===+localId&&ovOpen('#o-detail'))closeOv();
+        toast('這個活動已經看不到了');refresh();
+      }
+      return null;
+    }
+  }
+  /* same token, someone just became known (restore at boot): only "is this mine" changes */
+  function remine(){const u=A.user;acts.forEach(a=>{if(!a.sid)return;a.mine=!!u&&a.hostId===u.id;setStatus(a);});refresh();}
+  A.on('auth',()=>{if(!A.enabled)return;if(A.token!==loadedTok)load();else remine();});
+
+  FX.boot.push(()=>{
+    const rh=renderHome;renderHome=function(){const r=rh.apply(this,arguments);note();return r;};
+    const od=openDetail;openDetail=function(id){const r=od.apply(this,arguments);const a=byId(+id);if(A.enabled&&a&&a.sid)refreshOne(a.id);return r;};
+    /* the demo dates must not come back on the first switch to 約會 once the server has answered for that mode */
+    try{const sd=posterSeedDates;posterSeedDates=function(){if(ok.date)return;return sd.apply(this,arguments);};}catch(e){}
+    if(A.enabled)load();
+  });
+  window.TG_SYNC_EVENTS={load,refreshOne,fromServer,map,feeText,kmAng,get state(){return {ok:Object.assign({},ok),failed:Object.assign({},failed)};}};
+})();
+
+/* ===== feat/sync_social ===== */
+/* ===== feat/sync_social: 我 / 通知 / 聊天 on the real backend (prefix ss) =====
+   Only while TG_API.enabled and someone is signed in; signed out (and under jsdom) the demo data is left as it is.
+   - Server events sit in acts with a.sid; rooms and notices map to them by sid. Rooms whose event isn't in acts yet wait.
+   - One live socket, for the open room. Other rooms and the notice count are polled every 60s while the page is visible.
+   - Own messages carry a client_id, so the POST answer and the socket echo of the same message land on one bubble. */
+(()=>{
+  const A=TG_API,POLL=6e4,HIDE_CLOSE=6e4,IDLE_CLOSE=3e4;
+  const on=()=>A.enabled&&!!A.user;
+  let gen=0,uid=null;            /* gen bumps on every sign in/out: answers for the previous account are dropped */
+  const ME0=Object.assign({},ME);let N0=null;
+  const prof={stats:null,me:null};
+  const localOf=sid=>{const a=sid&&acts.find(x=>x.sid===sid);return a?a.id:null;};
+  const paint=()=>{refresh();renderTabs();};
+
+  /* ----- 我 ----- */
+  async function loadProfile(g){
+    const u=A.user,[me,s]=await Promise.all([u&&'birth_date' in u&&'created_at' in u?u:A.req('/me'),A.req('/me/stats')]);
+    if(g!==gen)return;
+    prof.me=me;prof.stats=s;if(A.user)Object.assign(A.user,me);
+    ME.host=s.hosted;ME.join=s.joined;ME.att=s.attendance_rate==null?'—':Math.round(s.attendance_rate*100);
+    paint();
+  }
+  const missing=()=>{const m=prof.me;return m?['birth_date','gender'].filter(k=>m[k]==null):[];};
+  function patchCard(){
+    const card=$('#meBody .idcard'),m=prof.me;if(!on()||!card||!m)return;
+    const yr=Math.max(1,Math.floor((Date.now()-(m.created_at||Date.now()))/(365*864e5))+1);
+    card.querySelector('.nm').innerHTML=`<span class="eb">TAGALONG 會員 · 第 ${yr} 年</span><b>${esc(m.display_name||'')}</b><small>${m.handle?'@'+esc(m.handle):'已用 LINE 登入'}</small>`;
+    if(ME.att==='—'){const b=card.querySelectorAll('.st b')[2];if(b)b.textContent='—';}
+  }
+  FX.meTop.push(()=>{
+    if(!on())return '';
+    queueMicrotask(patchCard);
+    const miss=missing();if(!miss.length)return '';
+    return `<div class="group rv ss-pf"><button class="cell" data-ss-pf style="grid-template-columns:minmax(0,1fr) auto"><span style="min-width:0"><b>補完個人資料</b><small>還沒填${miss.map(k=>k==='gender'?'性別':'生日').join('和')}，約會模式需要</small></span><span class="chev">›</span></button></div>`;
+  });
+  $('#sh-filter').insertAdjacentHTML('beforebegin','<section class="sheet short form" id="sh-ss-pf" role="dialog" aria-modal="true" aria-label="補完個人資料"><div class="grab"></div><div class="sheet-in" id="ssPfIn"></div></section>');
+  let pf=null;
+  function renderPf(){
+    const miss=missing(),ok=miss.every(k=>pf[k]),today=new Date().toISOString().slice(0,10);
+    $('#ssPfIn').innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>補完個人資料</h2><span></span></div>
+      <p class="hint pad ss-lock">生日和性別<b>設定後就不能自己修改</b>，送出前請確認。約會模式會用到這兩項，其他人只看得到年齡。</p>
+      ${miss.includes('birth_date')?`<div class="glbl2">生日</div><div class="frm"><label class="fr"><span class="lb">生日</span><input type="date" id="ssBirth" min="1900-01-01" max="${today}" value="${esc(pf.birth_date||'')}"></label></div>`:''}
+      ${miss.includes('gender')?`<div class="glbl2">性別</div><div class="frm"><div class="fr ss-one"><div class="opts" role="radiogroup" aria-label="性別">${[['f','女'],['m','男'],['x','不透露']].map(([k,t])=>`<button type="button" role="radio" data-ss-g="${k}" aria-checked="${pf.gender===k}">${t}</button>`).join('')}</div></div></div>`:''}
+      <p class="miss" id="ssPfMiss" aria-live="polite">${esc(pf.err||'')}</p>
+      <div class="sfoot"><button class="cta" data-ss-pfgo ${ok&&!pf.busy?'':'disabled'}>${pf.busy?'儲存中…':'確認送出'}</button></div>`;
+  }
+  async function savePf(){
+    const body={};missing().forEach(k=>{body[k]=pf[k];});pf.busy=true;pf.err='';renderPf();const g=gen;
+    try{const me=await A.req('/me',{method:'PATCH',body});if(g!==gen)return;prof.me=me;if(A.user)Object.assign(A.user,me);pf=null;closeSheet();toast('已儲存，之後不能自行修改');paint();}
+    catch(e){if(g!==gen||!pf)return;pf.busy=false;pf.err=e.message;renderPf();}
+  }
+  document.addEventListener('input',e=>{if(e.target.id==='ssBirth'&&pf){pf.birth_date=e.target.value;const b=$('[data-ss-pfgo]');if(b)b.disabled=!missing().every(k=>pf[k]);}});
+
+  /* interest prefs: server and feat/onboard's localStorage. Onboard has no setter, so a server value reaches its
+     in-memory copy on the next load (TG_OB.set is used if it ever exists). */
+  const KMS=[1,3,6];let obLast=null;
+  const obNow=()=>window.TG_OB?TG_OB.prefs():null;
+  const putPrefs=p=>A.req('/me/prefs',{method:'PUT',body:{categories:p.cats,slots:p.slots,max_km:p.km}});
+  async function loadPrefs(g){
+    if(!window.TG_OB)return;
+    const r=await A.req('/me/prefs');if(g!==gen)return;const loc=obNow();
+    if(r.categories.length){
+      const p={cats:r.categories.filter(c=>CATN[c]),slots:r.slots,km:KMS.reduce((x,y)=>Math.abs(y-r.max_km)<Math.abs(x-r.max_km)?y:x)};
+      if(JSON.stringify(p)!==JSON.stringify(loc)){if(TG_OB.set)TG_OB.set(p);else try{localStorage.setItem(TG_OB.KEY,JSON.stringify(p));}catch(e){}}
+    }else if(loc&&loc.cats.length)await putPrefs(loc);
+    obLast=JSON.stringify(obNow());
+  }
+  function checkPrefs(){
+    if(!on()||obLast==null)return;const p=obNow(),s=JSON.stringify(p);
+    if(s===obLast||!p)return;obLast=s;putPrefs(p).catch(e=>A.fail(e));
+  }
+
+  /* ----- 通知 ----- */
+  const KMAP={join_request:'req',approved:'ok',rejected:'wait',removed:'wait',seat_offer:'seat',offer_expired:'wait',event_cancel:'ssx',event_cancelled:'ssx',
+    event_edit:'remind',review:'rate',follow:'follow',safety:'sf',safety_help:'sf',safety_cleared:'sf',safety_escalated:'sf',safety_remind:'sf'};
+  NK.ssx='取消';NIC.ssx=IC.warn;if(!NK.sf){NK.sf='平安';NIC.sf=IC.check;}
+  const nt={cursor:null,busy:false};
+  const toNotice=n=>({k:KMAP[n.kind]||'remind',txt:n.body,ago:agoText(Math.max(0,Math.round((Date.now()-n.created_at)/6e4))),un:!n.read_at,nid:n.id,sev:n.event_id,id:localOf(n.event_id)||undefined,t:n.created_at});
+  async function loadNotices(g){
+    const r=await A.req('/notifications?limit=50');if(g!==gen)return;
+    if(!N0)N0=NOTICES.slice();
+    const keep=NOTICES.filter(n=>!n.nid&&!N0.includes(n));    /* things the app said locally since sign-in stay on top */
+    NOTICES.splice(0,NOTICES.length,...keep,...r.items.map(toNotice));nt.cursor=r.next_cursor;
+    paint();
+  }
+  async function moreNotices(){
+    if(nt.busy||!nt.cursor)return;nt.busy=true;const g=gen;
+    try{const r=await A.req('/notifications?limit=50&cursor='+encodeURIComponent(nt.cursor));if(g!==gen)return;
+      NOTICES.push(...r.items.filter(n=>!NOTICES.some(x=>x.nid===n.id)).map(toNotice));nt.cursor=r.next_cursor;if(st.tab==='chat')renderChat();}
+    catch(e){A.fail(e);}finally{nt.busy=false;}
+  }
+  const unreadNid=()=>NOTICES.filter(n=>n.nid&&n.un).length;
+
+  /* ----- 聊天 ----- */
+  let rooms=[];
+  const srv=id=>id!=null&&chats[id]&&chats[id].srv?chats[id]:null;
+  const openId=()=>curRoom!=null&&ovOpen('#o-room')?curRoom:null;
+  const toMsg=m=>({w:m.kind==='system'?'sys':m.user_id===uid?'me':'o',n:m.display_name||'',txt:m.body,t:m.created_at,mid:m.id});
+  function applyRooms(){
+    let ch=false;
+    rooms.forEach(it=>{
+      const id=localOf(it.event_id);if(id==null)return;
+      let c=srv(id);if(!c){c=chats[id]={srv:1,sid:it.event_id,msgs:[],unread:0,loaded:false,next:null,t0:Date.now()};ch=true;}
+      if(id===openId())return;
+      const last=it.last_message,lm=c.msgs.filter(m=>m.mid).pop();
+      if(c.unread!==it.unread){c.unread=it.unread;ch=true;}
+      /* changed while closed: show the server's last line, history reloads when the room opens; unsent ones stay */
+      if(last?!lm||lm.mid!==last.id:!c.msgs.length){c.loaded=false;c.next=null;c.msgs=[last?toMsg(last):{w:'sys',txt:'已加入群組',t:c.t0},...c.msgs.filter(m=>m.pend||m.fail)];ch=true;}
+    });
+    NOTICES.forEach(n=>{if(n.sev&&!n.id){const id=localOf(n.sev);if(id!=null){n.id=id;ch=true;}}});
+    return ch;
+  }
+  async function loadRooms(g){
+    const r=await A.req('/chat');if(g!==gen)return;rooms=r.items;if(applyRooms())paint();
+  }
+  /* a join's room shows up in GET /chat once the server has it */
+  FX.joined.push(a=>{if(on()&&a.sid){const g=gen;setTimeout(()=>{if(g===gen)loadRooms(g).catch(()=>{});},1500);}});
+  let reRender=false;
+  FX.chatTop.push(()=>{if(on()&&applyRooms()&&!reRender){reRender=true;setTimeout(()=>{reRender=false;if(st.tab==='chat')renderChat();});}return '';});
+
+  function paintRoom(id,keep){
+    if(openId()===id){if(keep){const box=$('#roomMsgs'),y=box.scrollHeight-box.scrollTop;renderRoom();box.scrollTop=box.scrollHeight-y;}else renderRoom();}
+    if(st.tab==='chat'&&!ovStack.length)renderChat();renderTabs();
+  }
+  const byT=(x,y)=>((x.pend||x.fail)?1:0)-((y.pend||y.fail)?1:0)||x.t-y.t;
+  function merge(c,items){
+    const have=new Set(c.msgs.map(m=>m.mid).filter(Boolean));let n=0;
+    items.forEach(m=>{if(!have.has(m.id)){c.msgs.push(toMsg(m));n++;}});
+    c.msgs.sort(byT);return n;
+  }
+  async function loadHistory(id){
+    const c=srv(id);if(!c||c.loading)return;c.loading=true;const g=gen;
+    try{const r=await A.req(`/chat/${encodeURIComponent(c.sid)}/messages?limit=50`);if(g!==gen||srv(id)!==c)return;
+      c.msgs=c.msgs.filter(m=>m.pend||m.fail||m.mid);merge(c,r.items);if(!c.msgs.length)c.msgs.push({w:'sys',txt:'已加入群組',t:c.t0||Date.now()});
+      c.next=r.next_before;c.loaded=true;c.unread=0;paintRoom(id);markRead(id);}
+    catch(e){if(g===gen)A.fail(e);}finally{c.loading=false;}
+  }
+  async function loadOlder(id){
+    const c=srv(id);if(!c||!c.next||c.older)return;c.older=true;const g=gen;paintRoom(id,true);
+    try{const r=await A.req(`/chat/${encodeURIComponent(c.sid)}/messages?limit=50&before=${encodeURIComponent(c.next)}`);if(g!==gen||srv(id)!==c)return;
+      moreN.msg+=merge(c,r.items);c.next=r.next_before;}
+    catch(e){if(g===gen)A.fail(e);}finally{c.older=false;if(g===gen)paintRoom(id,true);}
+  }
+  /* at most one read marker per room every 3s; one more goes after the pause if something new came in */
+  const readT={};
+  function markRead(id){
+    const c=srv(id);if(!c)return;c.dirty=false;const r=readT[id]||(readT[id]={t:0,again:false});
+    if(r.t){r.again=true;return;}
+    A.req(`/chat/${encodeURIComponent(c.sid)}/read`,{method:'POST'}).catch(()=>{});
+    r.t=setTimeout(()=>{r.t=0;if(r.again&&on()&&srv(id)===c){r.again=false;markRead(id);}},3e3);
+  }
+  let seq=0;
+  async function send(id,txt,m){
+    const c=srv(id);if(!c)return;
+    if(!m){m={w:'me',n:'',txt,t:Date.now(),cid:'c'+Date.now().toString(36)+'_'+(seq++),pend:1};c.msgs.push(m);}else{m.fail=0;m.pend=1;}
+    paintRoom(id);const g=gen;
+    try{const r=await A.req(`/chat/${encodeURIComponent(c.sid)}/messages`,{body:{body:m.txt,client_id:m.cid}});if(g!==gen)return;land(c,m,r);}
+    catch(e){if(g!==gen||!m.pend)return;m.pend=0;m.fail=1;}
+    c.msgs.sort(byT);paintRoom(id);
+  }
+  /* the POST answer: the socket may have brought this message already */
+  function land(c,m,r){
+    if(c.msgs.some(x=>x!==m&&x.mid===r.id)){c.msgs.splice(c.msgs.indexOf(m),1);return;}
+    m.mid=r.id;m.t=r.created_at;m.pend=0;m.fail=0;
+  }
+  function onLive(id,msg){
+    const c=srv(id);if(!c||c.msgs.some(x=>x.mid===msg.id))return;
+    const own=msg.client_id&&c.msgs.find(x=>x.cid===msg.client_id);
+    if(own){own.mid=msg.id;own.t=msg.created_at;own.pend=0;own.fail=0;}
+    else{c.msgs.push(toMsg(msg));if(openId()===id)markRead(id);else{c.unread++;c.dirty=true;}}
+    c.msgs.sort(byT);paintRoom(id);
+  }
+
+  /* ----- live socket: only the open room ----- */
+  const S={want:null,ws:null,tries:0,t:0,ping:0,idle:0,hide:0,resume:null,BACKOFF:[1e3,2e3,4e3,8e3,15e3,3e4]};
+  function closeSock(){
+    clearTimeout(S.t);clearTimeout(S.idle);clearInterval(S.ping);S.t=S.idle=S.ping=0;S.want=null;
+    const w=S.ws;S.ws=null;if(w)try{w.close(1000);}catch(e){}
+  }
+  function wantSock(id){
+    clearTimeout(S.idle);S.idle=0;
+    if(S.want===id&&(S.ws||S.t))return;
+    closeSock();S.want=id;S.tries=0;openSock();
+  }
+  function retry(){
+    if(S.want==null||!on())return;
+    const d=S.BACKOFF[Math.min(S.tries,S.BACKOFF.length-1)];S.tries++;
+    S.t=setTimeout(()=>{S.t=0;openSock();},d+Math.random()*d*.2);
+  }
+  async function openSock(){
+    const id=S.want,c=srv(id),g=gen,WS=window.WebSocket;
+    if(!c||!on()||document.hidden||!WS)return;
+    let tk;
+    try{tk=await A.req(`/chat/${encodeURIComponent(c.sid)}/ws-ticket`,{method:'POST'});}
+    catch(e){if(g===gen&&S.want===id&&!S.ws&&e.status!==403&&e.status!==401)retry();return;}
+    if(g!==gen||S.want!==id||S.ws)return;
+    const ws=new WS(A.BASE.replace(/^http/,'ws')+`/chat/${encodeURIComponent(c.sid)}/ws?ticket=${encodeURIComponent(tk.ticket)}`);S.ws=ws;
+    ws.onopen=()=>{if(S.ws!==ws)return;S.tries=0;clearInterval(S.ping);S.ping=setInterval(()=>{try{ws.send('ping');}catch(e){}},25e3);catchUp(id);};
+    ws.onmessage=e=>{if(S.ws!==ws||e.data==='pong')return;let d;try{d=JSON.parse(e.data);}catch(x){return;}if(d&&d.type==='message'&&d.message)onLive(id,d.message);};
+    ws.onclose=e=>{if(S.ws!==ws)return;S.ws=null;clearInterval(S.ping);if(e.code===4403||g!==gen){S.want=null;return;}retry();};
+  }
+  /* whatever arrived while the socket was down */
+  async function catchUp(id){
+    const c=srv(id);if(!c||!c.loaded)return;const g=gen;
+    try{const r=await A.req(`/chat/${encodeURIComponent(c.sid)}/messages?limit=50`);if(g!==gen||srv(id)!==c)return;
+      if(merge(c,r.items)){if(openId()===id)markRead(id);paintRoom(id);}}catch(e){}
+  }
+  /* a room closed: keep the socket a little in case it is opened again */
+  function checkRoom(){
+    if(S.want==null||openId()===S.want||S.idle)return;
+    S.idle=setTimeout(()=>{S.idle=0;if(openId()!==S.want)closeSock();},IDLE_CLOSE);
+  }
+
+  FX.room.push(a=>{
+    if(!on()||!a.sid)return;
+    let c=srv(a.id);
+    if(!c)c=chats[a.id]={srv:1,sid:a.sid,msgs:[{w:'sys',txt:'已加入群組',t:Date.now()}],unread:0,loaded:false,next:null,t0:Date.now()};
+    if(!c.loaded)setTimeout(()=>loadHistory(a.id));else if(c.dirty)markRead(a.id);
+    c.unread=0;
+    /* openRoom renders before it opens the overlay */
+    setTimeout(()=>{if(on()&&openId()===a.id)wantSock(a.id);});
+    const from=Math.max(0,c.msgs.length-moreN.msg),ms=c.msgs.slice(from).filter(m=>m.w!=='sys'),bs=$$('#roomMsgs .bub');
+    ms.forEach((m,i)=>{const b=bs[i];if(!b)return;
+      if(m.pend)b.classList.add('ss-pend');
+      if(m.fail){b.classList.add('ss-fail');b.insertAdjacentHTML('afterend',`<button type="button" class="ss-retry" data-ss-retry="${m.cid}">沒有送出 · 點這裡重試</button>`);}});
+    if(c.next&&!$('#roomMsgs [data-more="msg"]'))$('#roomMsgs').insertAdjacentHTML('afterbegin',`<button type="button" class="lnk2 smore" data-ss-older ${c.older?'disabled':''}>${c.older?'載入中…':'較早的訊息'}</button>`);
+  });
+  $('#roomMsgs').addEventListener('scroll',e=>{if(on()&&e.target.scrollTop<40){const c=srv(curRoom);if(c&&c.next&&!c.older)loadOlder(curRoom);}},{passive:true});
+  /* own submit wins over the demo one (which fakes a reply): capture on window runs before the form's listener */
+  window.addEventListener('submit',e=>{
+    if(e.target.id!=='roomForm'||!on()||!srv(curRoom))return;
+    e.preventDefault();e.stopImmediatePropagation();
+    const inp=$('#roomInput'),txt=inp.value.trim();if(!txt)return;inp.value='';$('#roomSend').disabled=true;send(curRoom,txt);
+  },true);
+
+  FX.click.push((b,d)=>{
+    if(d.ssPf!==undefined){pf={birth_date:'',gender:'',err:''};renderPf();showSheet('#sh-ss-pf');return true;}
+    if(d.ssG){if(pf){pf.gender=d.ssG;renderPf();}return true;}
+    if(d.ssPfgo!==undefined){if(pf&&!pf.busy)savePf();return true;}
+    if(!on())return false;
+    if(d.ssRetry){const c=srv(curRoom),m=c&&c.msgs.find(x=>x.cid===d.ssRetry);if(m&&m.fail)send(curRoom,m.txt,m);return true;}
+    if(d.ssOlder!==undefined){loadOlder(curRoom);return true;}
+    if(d.qk&&srv(curRoom)){send(curRoom,d.qk);return true;}
+    if(d.notice!==undefined){const n=NOTICES[+d.notice];if(n&&n.nid&&n.un)A.req(`/notifications/${encodeURIComponent(n.nid)}/read`,{method:'POST'}).catch(()=>{});return false;}
+    if(d.readall!==undefined){if(NOTICES.some(n=>n.nid&&n.un))A.req('/notifications/read-all',{method:'POST'}).catch(e=>A.fail(e));return false;}
+    if(d.more==='nt'&&nt.cursor&&NOTICES.length<=moreN.nt+MORE0.nt)moreNotices();
+    return false;
+  });
+  document.addEventListener('click',()=>{if(!on())return;setTimeout(()=>{checkPrefs();checkRoom();});});
+
+  /* ----- sign in/out, polling ----- */
+  let pollT=0;
+  async function tick(){
+    if(!on())return;const g=gen;
+    try{
+      const [n]=await Promise.all([A.req('/notifications/unread-count'),loadRooms(g)]);
+      if(g===gen&&n.count!==unreadNid())await loadNotices(g);
+    }catch(e){}
+    checkRoom();
+  }
+  function poll(){clearInterval(pollT);pollT=0;if(on()&&!document.hidden)pollT=setInterval(tick,POLL);}
+  document.addEventListener('visibilitychange',()=>{
+    if(!on())return;
+    if(document.hidden){clearTimeout(S.hide);S.hide=setTimeout(()=>{if(S.want!=null){S.resume=S.want;closeSock();}},HIDE_CLOSE);}
+    else{clearTimeout(S.hide);tick();const r=S.resume;S.resume=null;if(r!=null&&openId()===r)wantSock(r);else if(S.want!=null&&!S.ws&&!S.t)openSock();}
+    poll();
+  });
+  async function start(u){
+    const g=++gen;uid=u.id;
+    const jobs=[loadProfile(g),loadPrefs(g),loadNotices(g),loadRooms(g)].map(p=>p.catch(e=>{if(g===gen&&e.status!==401)console.warn('sync_social',e.message);}));
+    poll();await Promise.all(jobs);
+  }
+  function stop(){
+    gen++;uid=null;closeSock();clearInterval(pollT);pollT=0;rooms=[];prof.me=prof.stats=null;obLast=null;pf=null;nt.cursor=null;
+    Object.assign(ME,ME0);
+    if(N0){NOTICES.splice(0,NOTICES.length,...N0);N0=null;}
+    if(srv(curRoom))while(ovOpen('#o-room'))closeOv();
+    Object.keys(chats).forEach(id=>{if(chats[id].srv)delete chats[id];});
+    Object.keys(readT).forEach(k=>{clearTimeout(readT[k].t);delete readT[k];});
+    paint();
+  }
+  A.on('auth',u=>{if(u&&u.id===uid)return;if(uid)stop();if(u&&A.enabled)start(u);});
+
+  window.TG_SS={sock:S,start,stop,tick,loadNotices:()=>loadNotices(gen),get state(){return {uid,gen,prof,rooms,nt};},KMAP};
 })();
 
 /* ===== feat/trust ===== */
