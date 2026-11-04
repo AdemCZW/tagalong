@@ -826,6 +826,17 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .ln-mk{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:#06C755;color:#fff;font:900 11px/1 var(--f,"Noto Sans TC",sans-serif)}
 .ln-out{flex:none;height:34px;padding:0 12px;border:1px solid rgba(255,255,255,.3);border-radius:9px;background:none;color:var(--text,#fff);font:700 13px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
 
+/* the gate: a poster like 我, in the sign-in colours; it covers everything until there is a session */
+.lngate{position:absolute;inset:0;z-index:260;display:flex;flex-direction:column;background:#FFE500;color:#111;overflow:hidden;container-type:inline-size}
+.lg-logo{position:absolute;left:var(--gut,20px);top:calc(var(--top,50px) + 8px);font:400 25px/1 Anton,Impact,sans-serif}
+.lg-big{position:absolute;left:calc(var(--gut,20px) - 6px);top:calc(var(--top,50px) + 50px);font-size:46cqw;font-weight:900;line-height:1;letter-spacing:-.03em}
+.lg-foot{position:absolute;left:0;right:0;bottom:0;padding:22px var(--gut,20px) calc(var(--bot,16px) + 14px);background:#111;color:#fff;display:flex;flex-direction:column;gap:12px}
+.lg-lead{margin:0;font-size:17px;font-weight:900;line-height:1.4}
+.lg-btn{height:52px;font-size:17px;width:100%;display:grid;place-items:center;text-align:center}
+#phone:has(.lngate) .status{z-index:270;color:#111!important}
+#phone:has(.lngate) .status .bat{border-color:currentColor}#phone:has(.lngate) .status .bat::after{background:currentColor}
+.lg-note{margin:0;font-size:12px;color:#C8C8C8;line-height:1.5}
+
 /* ===== feat/maplibre ===== */
 /* 附近: real map (MapLibre) in place of the radar canvas */
 .ml-wrap{position:relative;width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#0e0e10}
@@ -3496,34 +3507,53 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   const paint=()=>{if(st.tab==='me')renderMe();};
   const fail=e=>toast(e&&e.message||'LINE 登入失敗，請再試一次');
 
+  /* the gate: with the backend on, nobody gets past it without a session. auth is 'checking' | 'in' | 'out' */
+  let auth='out',door=null;
+  const gateHTML=()=>`<section class="lngate" role="dialog" aria-modal="true" aria-label="登入 Tagalong">
+    <span class="lg-logo">Tagalong</span><b class="lg-big">登入</b>
+    <div class="lg-foot"><p class="lg-lead">用 LINE 一鍵登入，就能報名和聊天。</p>
+    <button class="ln-btn lg-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button>
+    <p class="lg-note">只會用到你的 LINE 名稱，不會以你的名義發訊息。</p></div></section>`;
+  function gate(on){
+    const g=$('.lngate');
+    if(on){if(g)g.outerHTML=gateHTML();else $('#phone').insertAdjacentHTML('beforeend',gateHTML());const c=$('.pcover');if(c){c.remove();$('#phone').classList.remove('pcv');}}
+    else if(g)g.remove();
+  }
+  function setAuth(v){
+    auth=v;if(!A.enabled)return;
+    if(v==='out'){door=null;gate(true);}
+    else if(v==='in'){gate(false);if(door){const b=door;door=null;b.click();}}
+  }
   async function start(){
-    if(busy)return;busy=true;paint();
+    if(busy)return;busy=true;paint();if($('.lngate'))gate(true);
     try{
       const {authorize_url}=await call('/auth/line/start',{method:'POST'});
       sset(SK,new URL(authorize_url).searchParams.get('state'));
       api.go(authorize_url);
-    }catch(e){busy=false;paint();fail(e);}
+    }catch(e){busy=false;paint();if($('.lngate'))gate(true);fail(e);}
   }
   /* back from LINE: always clean the address bar, so a refresh or a shared link can't replay the code */
   async function finish(q){
     const code=q.get('code'),state=q.get('state'),err=q.get('error'),mine=sget(SK);
     sset(SK,null);
     try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}
-    if(err){toast('已取消 LINE 登入');return;}
-    if(!code||!state||state!==mine){toast('登入已逾時，請重新用 LINE 登入');return;}
+    if(err){setAuth(A.user?'in':'out');toast('已取消 LINE 登入');return;}
+    if(!code||!state||state!==mine){setAuth(A.user?'in':'out');toast('登入已逾時，請重新用 LINE 登入');return;}
     busy=true;paint();
-    try{const d=await call('/auth/line/callback',{body:{code,state}});A.signIn(d.token,d.user);toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
-    catch(e){fail(e);}
-    busy=false;paint();
+    try{const d=await call('/auth/line/callback',{body:{code,state}});A.signIn(d.token,d.user);busy=false;setAuth('in');toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
+    catch(e){busy=false;setAuth('out');fail(e);}
+    paint();
   }
   async function restore(){
-    if(!A.token)return;
-    try{A.setUser(await call('/me'));}catch(e){if(e.status===403)A.signOut();}
+    if(!A.token){setAuth('out');return;}
+    setAuth('checking');
+    /* offline with a saved session: let them in on the sample data rather than lock them out; a refused session goes to the gate */
+    try{A.setUser(await call('/me'));setAuth('in');}catch(e){if(e.status===403)A.signOut();setAuth(e.status===0&&A.token?'in':'out');}
     paint();
   }
   async function logout(){
     try{await call('/auth/logout',{method:'POST'});}catch(e){}
-    A.signOut();paint();toast('已登出');
+    A.signOut();setAuth('out');paint();toast('已登出');
   }
 
   FX.meTop.push(()=>{const user=A.user;return user
@@ -3531,18 +3561,23 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><button class="ln-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button></div>`;});
   FX.click.push((b,d)=>{
     if(d.lnIn!==undefined){start();return true;}
+    /* the cover's doors lead into the app: signed out they lead to the gate; still checking, the tap waits for the answer */
+    if(d.cvGo!==undefined&&A.enabled&&auth!=='in'){if(auth==='checking')door=b;else setAuth('out');return true;}
     if(d.lnOut!==undefined){logout();return true;}
     return false;
   });
   FX.boot.push(()=>{
     const q=new URLSearchParams(location.search);
     if(q.has('code')||q.has('error')){
-      /* coming back from LINE: skip the cover and land on 我, where the result shows */
+      /* coming back from LINE: skip the cover and wait on the gate until the answer is in */
       const c=$('.pcover');if(c)c.remove();$('#phone').classList.remove('pcv');
-      setTimeout(()=>{switchTab('me');finish(q);},0);
+      auth='checking';if(A.enabled){busy=true;gate(true);busy=false;}
+      setTimeout(()=>finish(q),0);
     }else if(A.enabled)restore();
   });
-  const api=window.TG_LINE={start,finish,restore,logout,go:u=>location.assign(u),get user(){return A.user;},SK};
+  /* a session that dies mid-use (401 anywhere) sends you back to the gate */
+  A.on('auth',u=>{if(!u&&auth==='in')setAuth('out');});
+  const api=window.TG_LINE={start,finish,restore,logout,gate,get state(){return auth;},go:u=>location.assign(u),get user(){return A.user;},SK};
 })();
 
 /* ===== feat/maplibre ===== */
