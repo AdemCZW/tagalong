@@ -814,6 +814,18 @@ button,.pill,.mini,.tab,.fab{touch-action:manipulation;-webkit-tap-highlight-col
 .stbar.cal-in{margin-top:0}
 .cal-frm{margin-top:10px}
 
+/* ===== feat/linelogin ===== */
+/* LINE sign-in row on 我. Green is LINE's own button colour, used only on the LINE button. */
+.ln-me{display:flex;align-items:center;gap:12px;margin:12px var(--gut,18px) 0;padding:14px 16px;border-radius:14px;background:var(--panel,#171717)}
+.ln-t{flex:1;min-width:0}
+.ln-t b{display:block;font-size:15px;font-weight:900;color:var(--text,#fff)}
+.ln-t small{display:block;margin-top:2px;font-size:12px;color:var(--text3,#909090)}
+.ln-btn{flex:none;height:40px;padding:0 16px;border:0;border-radius:10px;background:#06C755;color:#fff;font:900 14px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
+.ln-btn:disabled{opacity:.6;cursor:default}
+.ln-btn:focus-visible,.ln-out:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.ln-mk{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:#06C755;color:#fff;font:900 11px/1 var(--f,"Noto Sans TC",sans-serif)}
+.ln-out{flex:none;height:34px;padding:0 12px;border:1px solid rgba(255,255,255,.3);border-radius:9px;background:none;color:var(--text,#fff);font:700 13px/1 var(--f,"Noto Sans TC",sans-serif);cursor:pointer}
+
 /* ===== feat/maplibre ===== */
 /* 附近: real map (MapLibre) in place of the radar canvas */
 .ml-wrap{position:relative;width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#0e0e10}
@@ -3402,6 +3414,78 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   window.TG_CAL={clashes,hard,entries,openCal,state:cs,dkey};
 })();
 
+/* ===== feat/linelogin ===== */
+/* ===== feat/linelogin: 用 LINE 登入 (prefix ln) =====
+   Talks to the real backend (backend/, staging on Workers). Only sign-in is real for now; events are still the seed data.
+   Flow: /auth/line/start gives LINE's URL with a one-time state -> the state is kept in sessionStorage -> LINE sends the
+   browser back here with ?code&state -> the state must match (stops someone logging you into their account) -> the
+   backend swaps the code for our token. The token lives in localStorage; anything failing leaves you signed out, nothing else breaks. */
+(()=>{
+  const API='https://tagalong-api-staging.tmac19920626.workers.dev',TK='tg-auth',SK='tg-line-state';
+  const get=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+  const set=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}};
+  const sget=k=>{try{return sessionStorage.getItem(k);}catch(e){return null;}};
+  const sset=(k,v)=>{try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v);}catch(e){}};
+  let user=null,busy=false;
+
+  async function call(path,opt={}){
+    const t=get(TK),r=await fetch(API+path,{method:opt.body!==undefined||opt.post?'POST':'GET',headers:Object.assign({},opt.body!==undefined?{'Content-Type':'application/json'}:{},t?{Authorization:'Bearer '+t}:{}),body:opt.body!==undefined?JSON.stringify(opt.body):undefined});
+    let d=null;try{d=await r.json();}catch(e){}
+    if(!r.ok)throw Object.assign(new Error(d&&d.error&&d.error.message||'連線失敗，請稍後再試'),{status:r.status});
+    return d;
+  }
+  const paint=()=>{if(st.tab==='me')renderMe();};
+  const fail=e=>toast(e&&e.message||'LINE 登入失敗，請再試一次');
+
+  async function start(){
+    if(busy)return;busy=true;paint();
+    try{
+      const {authorize_url}=await call('/auth/line/start',{post:true});
+      sset(SK,new URL(authorize_url).searchParams.get('state'));
+      api.go(authorize_url);
+    }catch(e){busy=false;paint();fail(e);}
+  }
+  /* back from LINE: always clean the address bar, so a refresh or a shared link can't replay the code */
+  async function finish(q){
+    const code=q.get('code'),state=q.get('state'),err=q.get('error'),mine=sget(SK);
+    sset(SK,null);
+    try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}
+    if(err){toast('已取消 LINE 登入');return;}
+    if(!code||!state||state!==mine){toast('登入已逾時，請重新用 LINE 登入');return;}
+    busy=true;paint();
+    try{const d=await call('/auth/line/callback',{body:{code,state}});set(TK,d.token);user=d.user;toast(d.is_new?`歡迎加入，${d.user.display_name}`:`歡迎回來，${d.user.display_name}`);}
+    catch(e){fail(e);}
+    busy=false;paint();
+  }
+  async function restore(){
+    if(!get(TK))return;
+    try{user=await call('/me');}catch(e){if(e.status===401||e.status===403)set(TK,null);user=null;}
+    paint();
+  }
+  async function logout(){
+    try{await call('/auth/logout',{post:true});}catch(e){}
+    set(TK,null);user=null;paint();toast('已登出');
+  }
+
+  FX.meTop.push(()=>user
+    ?`<div class="ln-me rv"><span class="ln-mk" aria-hidden="true">LINE</span><span class="ln-t"><b>${esc(user.display_name)}</b><small>已用 LINE 登入</small></span><button class="ln-out" data-ln-out>登出</button></div>`
+    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><button class="ln-btn" data-ln-in ${busy?'disabled':''}>${busy?'連線中…':'用 LINE 登入'}</button></div>`);
+  FX.click.push((b,d)=>{
+    if(d.lnIn!==undefined){start();return true;}
+    if(d.lnOut!==undefined){logout();return true;}
+    return false;
+  });
+  FX.boot.push(()=>{
+    const q=new URLSearchParams(location.search);
+    if(q.has('code')||q.has('error')){
+      /* coming back from LINE: skip the cover and land on 我, where the result shows */
+      const c=$('.pcover');if(c)c.remove();$('#phone').classList.remove('pcv');
+      setTimeout(()=>{switchTab('me');finish(q);},0);
+    }else restore();
+  });
+  const api=window.TG_LINE={start,finish,restore,logout,go:u=>location.assign(u),get user(){return user;},API,TK,SK};
+})();
+
 /* ===== feat/maplibre ===== */
 /* 附近: real map with MapLibre GL + CARTO Positron tiles (light, paper-toned to match the 和 theme) (prefix ml).
    Loads the library from unpkg the first time the 附近 tab opens. When it can't (jsdom, no WebGL, offline)
@@ -4954,6 +5038,8 @@ function meTidy(){
   const ob=r.querySelector(':scope > .ob-me'),pad=r.querySelector(':scope > .pad-b');
   posterFold(r,t=>!['票夾','我的行程'].includes(t));
   if(ob&&pad)pad.before(ob);
+  /* sign-in sits right under the name, first thing you see */
+  const ln=r.querySelector(':scope > .ln-me'),id=r.querySelector(':scope > .idcard');if(ln&&id)id.after(ln);
 }
 function chatTidy(){
   const r=$('#chatBody');if(!r)return;
