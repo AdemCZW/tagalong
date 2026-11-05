@@ -2,7 +2,7 @@
    - pages (index.html, admin/): network first, cache fallback, so an installed app still opens offline with what it last saw
    - Google Fonts css + woff2: cache first (immutable per URL)
    - the API host is never cached (auth, joins, live seats); everything else passes through untouched */
-const V='tagalong-20261105a',API=/workers\.dev$/,FONTS=/^fonts\.(googleapis|gstatic)\.com$/;
+const V='tagalong-20261105b',API=/workers\.dev$/,FONTS=/^fonts\.(googleapis|gstatic)\.com$/;
 const PAGES=['./','./index.html'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(V).then(c=>c.addAll(PAGES).catch(()=>{})));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});

@@ -2339,12 +2339,17 @@ const joined=new Set([5]),saved=new Set([4]),follows=new Set(['林子晴','許�
 const pending=new Set(),waitl=new Set();   /* applied (waiting for host) / on the waiting list */
 let myEmg={name:'',phone:'',rel:'家人'};   /* saved once, reused for the next high-risk event */
 const st={tab:'home',seg:'all',fresh:null,f:{cats:new Set(),fee:'any',risk:'any',seats:false,noapp:false,newbie:false,verified:false}};
+/* real backend on. feat/00api sets window.TG_API after this file has run, so it is read when needed, never at load.
+   Under jsdom TG_API.enabled is false and the demo seed stays; in a browser nothing made up may show. */
+const isReal=()=>!!(window.TG_API&&window.TG_API.enabled);
 /* ----- feature modules (feat/*.js) plug into these slots instead of editing the screens ----- */
 const FX={state:[],pill:[],tap:[],promote:[],rated:[],host:[],click:[],hide:[],count:[],needSheet:[],joinForm:[],joinMiss:[],joinInfo:[],joined:[],left:[],post:[],crOpts:[],boot:[],
-  homeTop:[],homeMid:[],detailTop:[],detailMid:[],detailEnd:[],chatTop:[],meTop:[],meMid:[],meEnd:[],room:[]};
+  homeTop:[],homeMid:[],detailTop:[],detailMid:[],detailEnd:[],chatTop:[],meTop:[],meMid:[],meEnd:[],room:[],people:[]};
 const fx=(k,...a)=>FX[k].map(f=>{try{return f(...a)||'';}catch(e){console.error(e);return '';}}).join('');
 const fxAny=(k,...a)=>FX[k].some(f=>{try{return !!f(...a);}catch(e){console.error(e);return false;}});
 const fxRun=(k,...a)=>FX[k].forEach(f=>{try{f(...a);}catch(e){console.error(e);}});
+/* the sync layer filled a.people (server participants) for an open event page: FX.people.forEach(f=>f(a)) redraws it in place */
+FX.people.push(a=>{if(a&&curDetail===a.id&&ovOpen('#o-detail')){const sc=$('#detailIn'),y=sc.scrollTop;renderDetail();$$('#detailIn .rv').forEach(x=>x.classList.add('in'));sc.scrollTop=y;}});
 const shown=a=>{for(const f of FX.hide){try{if(f(a))return false;}catch(e){console.error(e);}}return true;};
 const vacts=()=>acts.filter(shown);
 const count=a=>{let s=a.n+(joined.has(a.id)&&!a.mine?1:0);for(const f of FX.count)s+=+f(a)||0;return s;};
@@ -2367,7 +2372,13 @@ const passF=a=>{const f=st.f,o=optsOf(a);
   if(f.seats&&left(a)<=0)return false;if(f.noapp&&o.approve)return false;if(f.newbie&&o.level!=='新手友善')return false;if(f.verified&&!a.hostVerified)return false;return true;};
 const fCount=()=>{const f=st.f;return (f.fee!=='any')+(f.risk!=='any')+f.seats+f.noapp+f.newbie+!!f.verified;};
 const fAny=()=>fCount()>0||st.f.cats.size>0;
-const people=(a,k)=>Array.from({length:k},(_,i)=>PEOPLE[(a.id*5+i*7)%PEOPLE.length]);
+/* initials of who is going. Real backend: only the server's list (a.people, filled when the page opens), never made-up names */
+const peopleOf=a=>Array.isArray(a.people)?a.people:[];
+const ini=n=>[...String(n||'？')][0];
+const people=(a,k)=>isReal()?peopleOf(a).slice(0,k).map(p=>ini(p.name)):Array.from({length:k},(_,i)=>PEOPLE[(a.id*5+i*7)%PEOPLE.length]);
+/* server user id behind a 追蹤 button: its own data-follow-id, the open event's host, or someone in its a.people */
+const followId=(d,a)=>d.followId||(a&&a.host===d.follow&&a.hostId)||(a&&peopleOf(a).find(p=>p.name===d.follow)||{}).id||null;
+const followBtn=(name,uid)=>{if(isReal()&&!uid)return '';const on=follows.has(name);return `<button class="fol ${on?'on':''}" data-follow="${esc(name)}"${uid?` data-follow-id="${esc(uid)}"`:''}>${on?'追蹤中':'追蹤'}</button>`;};
 const headline=a=>{const i=a.title.indexOf('，');return i>0?[a.title.slice(0,i),a.title.slice(i+1)]:[a.title,''];};
 
 /* ----- chats & notices ----- */
@@ -2375,7 +2386,7 @@ const chats={};const T0=Date.now();
 function ensureChat(a,seed){
   if(chats[a.id])return chats[a.id];
   const ppl=people(a,3),msgs=[{w:'sys',txt:a.mine?'你建立了群組':'你已加入群組',t:T0-36e5*3}];
-  if(!a.mine)msgs.push({w:'o',n:a.host,txt:`歡迎！${a.say}`,t:T0-36e5*2.8});
+  if(!a.mine&&!isReal())msgs.push({w:'o',n:a.host,txt:`歡迎！${a.say}`,t:T0-36e5*2.8});   /* demo welcome line; real rooms load history */
   if(seed)seed.forEach(([i,txt,mins])=>msgs.push({w:'o',n:ppl[i%3]+'○○',txt,t:T0-mins*6e4}));
   return chats[a.id]={unread:seed?seed.length:0,msgs};
 }
@@ -2632,6 +2643,8 @@ const REPLIES=['收到！','好的','我會準時到','讚','有人要一起搭�
 function sendMsg(){
   const inp=$('#roomInput'),txt=inp.value.trim();if(!txt||curRoom==null)return;
   const id=curRoom,a=byId(id);chats[id].msgs.push({w:'me',txt,t:Date.now()});inp.value='';$('#roomSend').disabled=true;renderRoom();
+  /* the demo's automatic answer: never for a server room (chats[id].srv, feat/sync_social) and never with the real backend on */
+  if(isReal()||chats[id].srv)return;
   setTimeout(()=>{if(!chats[id])return;const n=a.mine?people(a,3)[Date.now()%3]+'○○':a.host;
     chats[id].msgs.push({w:'o',n,txt:REPLIES[Date.now()%REPLIES.length],t:Date.now()});
     if(curRoom===id&&ovOpen('#o-room'))renderRoom();else chats[id].unread++;
@@ -2686,7 +2699,11 @@ function reqGroup(a){
 }
 function renderDetail(){
   const a=byId(curDetail);if(!a)return;
-  const cnt=count(a),inn=joined.has(a.id)||a.mine,[h1,h2]=headline(a),ppl=people(a,Math.min(cnt,6));
+  const cnt=count(a),inn=joined.has(a.id)||a.mine,[h1,h2]=headline(a),ppl=people(a,Math.min(cnt,6)),real=isReal();
+  /* 誰會去: real backend shows the server's participants (avatar or initial) or, before they arrive / when hidden, only the count */
+  const who=real?(l=>l.length?l.slice(0,6).map(p=>`<span class="av">${p.avatar?`<img src="${esc(p.avatar)}" alt="${esc(p.name||'')}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`:esc(ini(p.name))}</span>`).join('')+`<em>${cnt>6?`等 ${cnt} 人`:`${cnt} 人`}</em>`
+      :`<em>${cnt>0?`已有 ${cnt} 人`:'還沒有人加入'}</em>`)(peopleOf(a))
+    :ppl.map(p=>`<span class="av">${p}</span>`).join('')+`<em>${cnt>6?`等 ${cnt} 人`:`${cnt} 人`}</em>`;
   $('#dttl').textContent=h1;$('#dSave').dataset.save=a.id;$('#dShare').dataset.share=a.id;
   $('#dSave').innerHTML=saved.has(a.id)?IC.markF:IC.mark;$('#dSave').classList.toggle('on',saved.has(a.id));
   const s1=a.say.split('。')[0]+'。',s2=a.say.slice(s1.length);
@@ -2703,9 +2720,9 @@ function renderDetail(){
     ${reqGroup(a)}
     ${fx('detailMid',a)}
     ${fx('host',a)||`<div class="sh rv"><h2>團主</h2></div>
-    <div class="group rv"><div class="host"><span class="av">${a.host[0]}</span><span class="nm"><b>${esc(a.host)}</b><small>★ ${a.hr.toFixed(1)} · 出席率 ${a.att}% · 揪過 ${6+a.id*3} 團</small></span>${a.mine?'':`<button class="fol ${follows.has(a.host)?'on':''}" data-follow="${esc(a.host)}">${follows.has(a.host)?'追蹤中':'追蹤'}</button>`}</div></div>`}
+    <div class="group rv"><div class="host"><span class="av">${a.host[0]}</span><span class="nm"><b>${esc(a.host)}</b><small>★ ${a.hr.toFixed(1)} · 出席率 ${a.att}% · 揪過 ${6+a.id*3} 團</small></span>${a.mine?'':followBtn(a.host,a.hostId)}</div></div>`}
     <div class="sh rv"><h2>誰會去</h2><span class="more tnum">還剩 ${left(a)} 位</span></div>
-    <div class="avs rv">${ppl.map(p=>`<span class="av">${p}</span>`).join('')}<em>${cnt>6?`等 ${cnt} 人`:`${cnt} 人`}</em></div>
+    <div class="avs rv">${who}</div>
     <div class="sh rv"><h2>地點</h2></div>
     <div class="group rv"><div class="cell" style="grid-template-columns:auto 1fr"><span class="chip lt pinc" style="--z:40px">${IC.pin}</span><span><b style="white-space:normal">${inn?esc(a.addr):esc(a.place)}</b><small>${inn?`距離 ${a.km.toFixed(1)} 公里 · 步行約 ${Math.round(a.km*12)} 分鐘`:pending.has(a.id)?'團主同意後會顯示精確的集合地點':'加入後會顯示精確的集合地點'}</small></span></div></div>
     <div class="sh rv"><h2>留言</h2><span class="more tnum">${a.cm.length}</span></div>
@@ -2714,6 +2731,8 @@ function renderDetail(){
     ${fx('detailEnd',a)}
     <div class="pad-b"></div>`;
   $('#dbar').innerHTML=`<span class="fee"><b>${esc(a.fee)}</b><small>${left(a)>0?`還剩 ${left(a)} 個名額`:optsOf(a).wait?'已額滿 · 可排候補':'已額滿'}</small></span>${inn?`<button class="chat" data-room="${a.id}" aria-label="群組聊天">${IC.chat}</button>`:''}${joinPill(a,'lg')}`;
+  /* real backend: a 追蹤 button (ours or a feature's, e.g. feat/trust) needs a server user id behind it, or it goes */
+  if(real)$$('#detailIn [data-follow]').forEach(b=>{if(!followId(b.dataset,a))b.remove();});
   settle($('#detailIn'));
   const inp=$('#cmInput');inp.addEventListener('input',()=>{$('#cmSend').disabled=!inp.value.trim();});
   $('#cmForm').addEventListener('submit',e=>{e.preventDefault();const t=inp.value.trim();if(!t)return;a.cm.push({u:'安',txt:t,likes:0,ago:0,me:true});moreN.cm=Math.max(moreN.cm,a.cm.length);renderDetail();$$('#detailIn .rv').forEach(x=>x.classList.add('in'));const sc=$('#detailIn');sc.scrollTop=sc.scrollHeight;toast('已留言');});
@@ -2760,19 +2779,23 @@ $('#searchInput').addEventListener('input',e=>{const now=Date.now(),v=e.target.v
 /* ===== me ===== */
 const BADGES=[['outdoor','山系團主','揪過 6 次登山'],['sport','準時王','連續 20 場'],['book','讀書會常客','參加 8 次']];
 function renderMe(){
-  const tix=acts.filter(a=>joined.has(a.id)||a.mine).sort((a,b)=>a.start-b.start),sv_=acts.filter(a=>saved.has(a.id));
-  $('#meBody').innerHTML=`<div class="idcard rv"><span class="avt">${chip('me',64)}</span><span class="nm"><span class="eb">TAGALONG 會員 · 第 2 年</span><b>安安</b><small>@annie.weekend</small></span>
-      <div class="st"><div><b class="tnum" data-count="${ME.host}">${ME.host}</b><small>發起</small></div><div><b class="tnum" data-count="${ME.join}">${ME.join}</b><small>參加</small></div><div><b class="tnum"><span data-count="${ME.att}">${ME.att}</span>%</b><small>準時出席</small></div></div></div>
+  const tix=acts.filter(a=>joined.has(a.id)||a.mine).sort((a,b)=>a.start-b.start),sv_=acts.filter(a=>saved.has(a.id)),real=isReal();
+  /* real backend: the card shows the signed-in name (window.TG_ME) or stays blank until feat/sync_social fills it; the stats
+     wait for /me/stats (TG_SS.state.prof.stats) instead of counting up the demo numbers first; no demo badges, no sample QR pass */
+  const me=real&&window.TG_ME||null,ready=!real||!!(window.TG_SS&&TG_SS.state.prof&&TG_SS.state.prof.stats);
+  const stat=k=>ready?`<b class="tnum" data-count="${ME[k]}">${ME[k]}</b>`:`<b class="tnum">—</b>`;
+  $('#meBody').innerHTML=`<div class="idcard rv"><span class="avt">${chip('me',64)}</span><span class="nm">${real?`<span class="eb">TAGALONG 會員</span><b>${me&&me.name?esc(me.name):'&nbsp;'}</b><small>&nbsp;</small>`:`<span class="eb">TAGALONG 會員 · 第 2 年</span><b>安安</b><small>@annie.weekend</small>`}</span>
+      <div class="st"><div>${stat('host')}<small>發起</small></div><div>${stat('join')}<small>參加</small></div><div>${ready?`<b class="tnum"><span data-count="${ME.att}">${ME.att}</span>%</b>`:`<b class="tnum">—</b>`}<small>準時出席</small></div></div></div>
     ${fx('meTop')}
     <div class="sh rv"><h2>票夾</h2><span class="more tnum">${tix.length} 張</span></div>
-    ${tix.length?`<div class="wallet rv">${tix.map(a=>`<button class="pass" ${a.mine?`data-detail="${a.id}"`:`data-qr="${a.id}"`}><span class="top">${chip(a.cat,30)}<span>TAGALONG</span><em>${whenLabel(a.start)}</em></span><h4>${esc(headline(a)[0])}</h4>
+    ${tix.length?`<div class="wallet rv">${tix.map(a=>`<button class="pass" ${a.mine||real?`data-detail="${a.id}"`:`data-qr="${a.id}"`}><span class="top">${chip(a.cat,30)}<span>TAGALONG</span><em>${whenLabel(a.start)}</em></span><h4>${esc(headline(a)[0])}</h4>
       <span class="row"><span><small>時間</small><b class="tnum">${hm(a.start)}</b></span><span><small>日期</small><b>${md(a.start)}</b></span><span><small>地點</small><b>${esc(a.place)}</b></span></span>
-      <span class="qrb"><span>${a.mine?'你是團主':'出示給團主掃描'}</span><i>${a.mine?'管理':'報到碼'}</i></span></button>`).join('')}</div>`:`<p class="empty"><b>票夾是空的</b>加入活動後，票會放在這裡。</p>`}
+      <span class="qrb"><span>${a.mine?'你是團主':real?'點開看活動':'出示給團主掃描'}</span><i>${a.mine?'管理':real?'詳情':'報到碼'}</i></span></button>`).join('')}</div>`:`<p class="empty"><b>票夾是空的</b>加入活動後，票會放在這裡。</p>`}
     ${fx('meMid')}
     <div class="sh rv"><h2>收藏</h2></div>
     ${sv_.length?`<div class="group rv">${sv_.map(cellHTML).join('')}</div>`:`<p class="empty">還沒有收藏的活動。</p>`}
-    <div class="sh rv"><h2>成就</h2></div>
-    <div class="badges rv">${BADGES.map(([c,b,s])=>`<div class="badge">${chip(c,46)}<b>${b}</b><small>${s}</small></div>`).join('')}</div>
+    ${real?'':`<div class="sh rv"><h2>成就</h2></div>
+    <div class="badges rv">${BADGES.map(([c,b,s])=>`<div class="badge">${chip(c,46)}<b>${b}</b><small>${s}</small></div>`).join('')}</div>`}
     ${fx('meEnd')}
     <div class="pad-b"></div>`;
   settle($('#meBody'));
@@ -2780,6 +2803,7 @@ function renderMe(){
 
 /* ===== check-in pass ===== */
 function openQR(id){
+  if(isReal()){openDetail(id);return;}   /* the pass is a sample: with the real backend the ticket opens the event page until check-in exists */
   const a=byId(id),code=String(240000+id*1373).slice(-6);
   $('#qrIn').innerHTML=`<div class="pass"><span class="top">${chip(a.cat,30)}<span>TAGALONG</span><em>${whenLabel(a.start)}</em></span><h4>${esc(headline(a)[0])}</h4>
     <span class="row"><span><small>時間</small><b class="tnum">${hm(a.start)}</b></span><span><small>日期</small><b>${md(a.start)}</b></span><span><small>地點</small><b>${esc(a.place)}</b></span></span>
@@ -3004,7 +3028,10 @@ function rvCheck(){
   $('#rvMiss').textContent=m?`還差：${m}`:'';$('#rvGo').disabled=!!m;
 }
 function doRate(){
-  if(!rv||$('#rvGo').disabled)return;const p=pastById(rv.id);p.done=true;
+  if(!rv||$('#rvGo').disabled)return;const p=pastById(rv.id);
+  /* a server event (p.sid): no local make-believe until POST /events/:id/reviews is wired */
+  if(isReal()&&p.sid){closeSheet();rv=null;toast('回饋功能即將開放');return;}
+  p.done=true;
   if(p.mine){const c=Object.values(rv.st),n=c.filter(s=>s==='in').length,x=c.filter(s=>s==='ex').length,no=c.filter(s=>s==='no').length;
     ME.host++;pushNotice({k:'ok',txt:`已確認「${p.title}」出席：${n} 人到${x?`、${x} 人請假`:''}${no?`、${no} 人沒到`:''}`,un:false,pid:p.id});toast('出席已確認，謝謝你帶團');}
   else if(rv.at==='yes'){ME.join++;ME.att=Math.min(100,ME.att+1);pushNotice({k:'ok',txt:`謝謝你給「${p.title}」的回饋${rv.rec.size?`，已轉達 ${rv.rec.size} 個推薦`:''}`,un:false,pid:p.id});toast('已送出回饋');}
@@ -3072,7 +3099,12 @@ document.addEventListener('click',e=>{
   else if(d.detail){openDetail(+d.detail);}
   else if(d.save!==undefined&&+d.save){const id=+d.save;saved.has(id)?saved.delete(id):saved.add(id);toast(saved.has(id)?'已加入收藏':'已移除收藏');refresh();}
   else if(d.share!==undefined&&+d.share){toast('已拷貝連結');}
-  else if(d.follow){const h=d.follow;follows.has(h)?follows.delete(h):follows.add(h);toast(follows.has(h)?`已追蹤 ${h}`:'已取消追蹤');refresh();}
+  else if(d.follow){const h=d.follow;
+    if(isReal()){   /* PUT / DELETE /me/follows/:userId, drawn first, rolled back if the server says no */
+      const uid=followId(d,curDetail!=null?byId(curDetail):null);if(!uid){toast('暫時無法追蹤');return;}
+      const was=follows.has(h);was?follows.delete(h):follows.add(h);toast(was?'已取消追蹤':`已追蹤 ${h}`);refresh();
+      window.TG_API.req('/me/follows/'+encodeURIComponent(uid),{method:was?'DELETE':'PUT'}).catch(e=>{was?follows.add(h):follows.delete(h);refresh();toast(e&&e.message||'操作沒有成功');});
+    }else{follows.has(h)?follows.delete(h):follows.add(h);toast(follows.has(h)?`已追蹤 ${h}`:'已取消追蹤');refresh();}}
   else if(d.cmlike){const k=d.cmlike;cmLiked.has(k)?cmLiked.delete(k):cmLiked.add(k);refresh();}
   else if(d.room){openRoom(+d.room);}
   else if(d.back!==undefined){closeOv();}
@@ -3101,8 +3133,17 @@ const clockTick=()=>{const n=new Date();setText($('#clock'),n.getHours()+':'+pad
 liveEvery(15000,()=>{liveEls('[data-until]').forEach(el=>{const a=byId(+el.dataset.until);if(a)setText(el,until(a.start));});clockTick();});
 clockTick();
 
+/* real backend: the demo's ended events, the notices that point at them and the seed follows never show; the sync layer
+   brings the real ones. Runs at boot (TG_API exists by then) before the first screen is drawn. */
+function realPurge(){
+  if(!isReal())return;
+  PAST.length=0;
+  for(let i=NOTICES.length-1;i>=0;i--)if(NOTICES[i].pid!=null)NOTICES.splice(i,1);
+  follows.clear();
+}
 /* called by the build after every feature module has registered */
 function tgBoot(){
+realPurge();
 fxRun('boot');
 renderTabs();renderHome();
 /* let the first screen paint before the GPU work starts; each category swaps in as soon as it is baked */
@@ -3184,9 +3225,16 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     if(a.dating&&typeof posterMode!=='undefined'&&posterMode!=='date'&&typeof posterSetMode==='function')posterSetMode('date');
     openDetail(a.id);
   }
+  /* a shared link is not a way around the gate: with the backend on and no session, the id stays stashed, the gate comes up,
+     and the event opens once sign-in reports back (sessionStorage survives the trip to LINE). 'checking' just waits. */
+  const A=window.TG_API,LN=()=>window.TG_LINE;
+  const locked=()=>!!(A&&A.enabled&&LN()&&LN().state!=='in');
+  if(A&&A.on)A.on('auth',u=>{if(u&&pend)setTimeout(()=>fromUrl(),0);});
   /* opens the event behind the pending id; a server id may arrive late (sync_events loads after boot), so look again for a while */
   function fromUrl(id){
-    id=id||readE()||pend;if(!id)return false;pend=null;ss.set(EK,null);clearUrl();
+    id=id||readE()||pend;if(!id)return false;
+    if(locked()){pend=id;ss.set(EK,id);clearUrl();if(LN().state==='out')LN().gate(true);return true;}
+    pend=null;ss.set(EK,null);clearUrl();
     const t0=Date.now();
     const tryOpen=()=>{const a=inActs(id);
       if(a){show(a);return;}   /* a server row already carries its local id (sync_events taught TG_API.ids the pair) */
@@ -3318,7 +3366,10 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
    drawn on a canvas. Seed photos are generated SVG scenes tinted with the event's category colour. */
 (()=>{
   const AL={};                       /* pid -> [{s:dataURL,u:initial,t:time}] */
+  /* real backend: no generated sample photos (REAL is read at load, which is after feat/00api); your own uploads sign with your name */
+  const REAL=!!(window.TG_API&&window.TG_API.enabled),real=()=>!!(window.TG_API&&window.TG_API.enabled);
   const ME_INI='安';
+  const meIni=()=>real()?[...String(window.TG_ME&&TG_ME.name||'我')][0]:ME_INI;
   const hex=c=>{c=c.replace('#','');return [0,2,4].map(i=>parseInt(c.slice(i,i+2),16));};
   const mix=(a,b,t)=>{const x=hex(a),y=hex(b);return '#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('');};
   const f1=n=>Math.round(n*10)/10;
@@ -3370,7 +3421,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     return 'data:image/svg+xml,'+encodeURIComponent(svg);
   }
   const SEED={101:['river','track','group','lights','river','sky'],102:['table','lights','group','table']};
-  PAST.forEach(p=>{const ks=SEED[p.id]||[],who=p.ppl.concat(p.mine?[]:[ME_INI]);
+  if(!REAL)PAST.forEach(p=>{const ks=SEED[p.id]||[],who=p.ppl.concat(p.mine?[]:[ME_INI]);
     AL[p.id]=ks.map((k,i)=>({s:scene(k,GCOL[p.cat]||'#FF5A36',p.id*10+i),u:who[(i*2+1)%who.length],t:p.start+(p.dur*6e4)*(i+1)/(ks.length+1)}));});
   const list=id=>AL[id]||(AL[id]=[]);
   const pastAll=()=>PAST.slice().sort((a,b)=>b.start-a.start);
@@ -3416,12 +3467,12 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     const l=list(cur),x=l[ph];if(!x)return;
     $('#alCnt').textContent=`${ph+1} / ${l.length}`;
     $('#alImg').innerHTML=`<img src="${esc(x.s)}" alt="第 ${ph+1} 張">`;
-    $('#alWho').innerHTML=`<span class="av">${esc(x.u)}</span><span>${x.u===ME_INI?'你':esc(x.u)+'○○'} 上傳<small>${hm(x.t)}</small></span>`;
+    $('#alWho').innerHTML=`<span class="av">${esc(x.u)}</span><span>${x.u===meIni()?'你':esc(x.u)+'○○'} 上傳<small>${hm(x.t)}</small></span>`;
     const [pv,nx]=$$('#o-alv [data-al-nav]');pv.disabled=ph<=0;nx.disabled=ph>=l.length-1;
   }
   function openPhoto(i){ph=i;renderViewer();openOv('#o-alv');}
   function add(id,src,u){
-    if(!pastById(id)||!src)return 0;list(id).push({s:src,u:u||ME_INI,t:Date.now()});
+    if(!pastById(id)||!src)return 0;list(id).push({s:src,u:u||meIni(),t:Date.now()});
     if(cur===id&&ovOpen('#o-al'))renderAlbum();
     if(st.tab==='me')renderMe();
     return list(id).length;
@@ -3911,7 +3962,8 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   async function restore(){
     if(!A.token){setAuth('out');return;}
     setAuth('checking');
-    /* offline with a saved session: let them in on the sample data rather than lock them out; a refused session goes to the gate */
+    /* offline with a saved session: let them in (feat/sync_events then shows 連不上伺服器 + 重試, not sample data) rather than
+       lock them out; a refused session goes to the gate */
     try{A.setUser(await call('/me'));setAuth('in');}catch(e){if(e.status===403)A.signOut();setAuth(e.status===0&&A.token?'in':'out');}
     paint();
   }
@@ -3922,7 +3974,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 
   FX.meTop.push(()=>{const user=A.user,v=via();return user
     ?`<div class="ln-me rv">${v==='google'?`<span class="ln-mk gg-mk" aria-hidden="true">${G}</span>`:'<span class="ln-mk" aria-hidden="true">LINE</span>'}<span class="ln-t"><b>${esc(user.display_name)}</b><small>已用 ${NAME[v]} 登入</small></span><button class="ln-out" data-ln-out>登出</button></div>`
-    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>目前看到的是示意資料</small></span><span class="ln-btns">${btns('')}</span></div>`;});
+    :`<div class="ln-me rv"><span class="ln-t"><b>登入後才能報名和聊天</b><small>${A.enabled?'還沒登入':'目前看到的是示意資料'}</small></span><span class="ln-btns">${btns('')}</span></div>`;});
   FX.click.push((b,d)=>{
     if(d.lnIn!==undefined){start('line');return true;}
     if(d.ggIn!==undefined){start('google');return true;}
@@ -4130,7 +4182,11 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
    (feedback / 報平安 / 相簿) and the last messages of its group, read-only (groups are archived 7 days after the end).
    Entry points: Me「去過的活動」, calendar past rows, album header, safety card title. Expose TG_PV.open(pid). */
 (()=>{
+  /* real backend on (read when needed: tests flip TG_API.enabled after load). PAST is then empty until the sync layer fills it,
+     and nothing here may invent people or messages for a row it does fill. */
+  const real=()=>!!(window.TG_API&&window.TG_API.enabled);
   const ME_INI='安';
+  const meIni=()=>real()?[...String(window.TG_ME&&TG_ME.name||'我')][0]:ME_INI;
   const DAY=864e5,ARCH=7;
   const endP=p=>p.start+p.dur*6e4;
   const pastAll=()=>PAST.slice().sort((a,b)=>b.start-a.start);
@@ -4144,6 +4200,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     104:[['me',-260,'小油坑停車場 18:30 集合，頭燈必帶'],['張',-252,'+1'],['me',5,'全員下山了，回家路上小心'],['吳',28,'已到家'],['劉',44,'報平安了～']]
   };
   function thread(p){
+    if(real())return Array.isArray(p.msgs)?p.msgs:[];   /* server rows bring their own archived lines (p.msgs) or none */
     const e=endP(p),now=Date.now(),a=p.ppl[0]||'林',b=p.ppl[1]||a;
     const raw=SEED[p.id]||[['h',-60,`${p.place}見！`],[a,10,'謝謝團主，很好玩'],[b,30,'下次再約']];
     const L=[];let prev=null;
@@ -4156,8 +4213,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     return L;
   }
   function threadHTML(p){
-    let prev=null;
-    return thread(p).map(m=>{let h='';
+    let prev=null;const L=thread(p);
+    if(!L.length)return `<span class="sys pv-none">群組沒有留下訊息</span>`;
+    return L.map(m=>{let h='';
       if(m.w==='sys')h=`<span class="sys">${esc(m.txt)} · ${hm(m.t)}</span>`;
       else if(m.w==='me')h=`<span class="bub me">${esc(m.txt)}</span>`;
       else h=`${!prev||prev.w!=='o'||prev.n!==m.n?`<span class="who">${esc(m.n)}${m.host?'<em>團主</em>':''}</span>`:''}<span class="bub">${esc(m.txt)}</span>`;
@@ -4197,14 +4255,14 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   let cur=null;
   function render(){
     const p=pastById(cur);if(!p)return;
-    const e=endP(p),guest=!p.mine,who=guest?[ME_INI,...p.ppl]:p.ppl.slice(),n=who.length+(guest?0:1);
+    const e=endP(p),guest=!p.mine,mi=meIni(),who=guest?[mi,...p.ppl]:p.ppl.slice(),n=who.length+(guest?0:1);
     const box=$('#pvIn'),y=box.scrollTop;
     box.innerHTML=`<section class="pv-hero" data-pv-hero="${p.id}">${chip(p.cat,56)}<span style="min-width:0"><span class="pv-eb">${CATN[p.cat]||''} · 活動回顧</span><h1>${esc(p.title)}</h1>
         <small class="pv-when">已結束 · ${dayTxt(p.start)} ${hm(p.start)}–${hm(e)} · ${esc(p.place)}</small></span></section>
       <div class="sh"><h2>團主</h2></div>
-      <div class="group"><div class="host"><span class="av">${esc(p.mine?ME_INI:p.host[0])}</span><span class="nm"><b>${p.mine?'你':esc(p.host)}</b><small>${p.mine?'這團是你帶的':'帶了這場活動'}</small></span>${p.mine?'':`<button class="fol ${follows.has(p.host)?'on':''}" data-follow="${esc(p.host)}">${follows.has(p.host)?'追蹤中':'追蹤'}</button>`}</div></div>
+      <div class="group"><div class="host"><span class="av">${esc(p.mine?mi:p.host[0])}</span><span class="nm"><b>${p.mine?'你':esc(p.host)}</b><small>${p.mine?'這團是你帶的':'帶了這場活動'}</small></span>${p.mine?'':followBtn(p.host,p.hostId)}</div></div>
       <div class="sh"><h2>誰有去</h2><span class="more tnum">${n} 人</span></div>
-      <div class="avs pv-avs">${who.slice(0,8).map(u=>`<span class="av${u===ME_INI&&guest?' pv-me':''}">${esc(u)}</span>`).join('')}<em>${guest?'你和 ':''}${p.ppl.length} 人${guest?'':'跟你'}一起</em></div>
+      <div class="avs pv-avs">${who.slice(0,8).map(u=>`<span class="av${u===mi&&guest?' pv-me':''}">${esc(u)}</span>`).join('')}<em>${guest?'你和 ':''}${p.ppl.length} 人${guest?'':'跟你'}一起</em></div>
       <div class="sh"><h2>你的狀態</h2></div>
       <div class="group pv-st">${fbCell(p)}${sfCell(p)}</div>
       ${albumHTML(p)}
@@ -4224,7 +4282,8 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
 
   /* ---- Me: 去過的活動 ---- */
-  FX.meMid.push(()=>{const ps=pastAll();if(!ps.length)return '';
+  FX.meMid.push(()=>{const ps=pastAll();
+    if(!ps.length)return `<div class="sh rv"><h2>去過的活動</h2></div><p class="empty pv-empty"><b>還沒有去過的活動</b>參加過的活動結束後會留在這裡。</p>`;
     return `<div class="sh rv"><h2>去過的活動</h2><span class="more tnum">${ps.length} 場</span></div>
       <div class="group rv pv-list">${ps.map(p=>`<button class="cell" data-pv-open="${p.id}">${chip(p.cat,40)}<span style="min-width:0"><b>${esc(p.title)}</b><small>${dayTxt(p.start)} · ${p.mine?'你帶的團':'團主 '+esc(p.host)}</small></span>${p.done?'<span class="pv-chev">›</span>':`<em class="pv-tag">${p.mine?'待確認':'待回饋'}</em>`}</button>`).join('')}</div>`;});
 
@@ -4338,30 +4397,36 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 /* ===== feat/recurring ===== */
 /* ===== feat/recurring: 固定團 — weekly / bi-weekly series, regulars get first pick, subscribe for new sessions ===== */
 (()=>{
+  /* real backend: REAL (read at load, after feat/00api) skips the demo series below; real() (read when needed, so tests can flip
+     TG_API.enabled later) keeps the made-up history, regular status and priority window off the screen */
+  const REAL=!!(window.TG_API&&window.TG_API.enabled),real=()=>!!(window.TG_API&&window.TG_API.enabled);
   /* fake history per series: sessions held so far, regulars count, whether the user is a regular */
-  const SER={7:{held:12,regs:9,reg:true},2:{held:6,regs:4,reg:false},8:{held:5,regs:11,reg:false}};
-  byId(7).opts.repeat='每週';
-  byId(2).opts.repeat='隔週';
-  byId(8).opts.repeat='每週';
+  const SER=REAL?{}:{7:{held:12,regs:9,reg:true},2:{held:6,regs:4,reg:false},8:{held:5,regs:11,reg:false}};
   /* priority window: the session opened at rcOpen; for 24 h only regulars can join */
   const WIN=864e5;
-  byId(7).rcOpen=at(1,'19:30')-WIN;   /* user is a regular: matches the notice below */
-  byId(8).rcOpen=at(1,'22:00')-WIN;   /* user is not a regular: blocked until tomorrow 22:00 */
+  if(!REAL){
+    byId(7).opts.repeat='每週';
+    byId(2).opts.repeat='隔週';
+    byId(8).opts.repeat='每週';
+    byId(7).rcOpen=at(1,'19:30')-WIN;   /* user is a regular: matches the notice below */
+    byId(8).rcOpen=at(1,'22:00')-WIN;   /* user is not a regular: blocked until tomorrow 22:00 */
+  }
   const remind=new Set();
   const subs=new Set();
   const STEP={'每週':7,'隔週':14};
   const isRc=a=>!!a&&optsOf(a).repeat!=='不重複';
-  const ser=a=>SER[a.id]||(SER[a.id]={held:0,regs:0,reg:false});
+  const NONE={held:0,regs:0,reg:false};
+  const ser=a=>real()?NONE:SER[a.id]||(SER[a.id]={held:0,regs:0,reg:false});
   /* the session after t, following the series rule */
   const nextOf=(t,rep)=>{const d=new Date(t);if(rep==='每月')d.setMonth(d.getMonth()+1);else d.setDate(d.getDate()+(STEP[rep]||7));return d.getTime();};
   const dates=(a,k)=>{const r=optsOf(a).repeat,o=[a.start];while(o.length<k)o.push(nextOf(o[o.length-1],r));return o;};
   const rule=a=>{const r=optsOf(a).repeat,d=new Date(a.start),w=ZH[d.getDay()].slice(1);
     return (r==='每月'?`每月 ${d.getDate()} 日`:r==='隔週'?`隔週${w}`:`每週${w}`)+' '+hm(a.start);};
   const pill=(t,i)=>{const d=new Date(t);return `<span class="rc-dp${i?'':' now'}"><b class="tnum">${d.getMonth()+1}/${d.getDate()}</b><small>${i?ZH[d.getDay()]:'本場'}</small></span>`;};
-  const mySeries=()=>acts.filter(a=>(a.mine||subs.has(a.id)||SER[a.id]&&SER[a.id].reg)&&isRc(a)).sort((x,y)=>x.start-y.start);
+  const mySeries=()=>acts.filter(a=>(a.mine||subs.has(a.id)||ser(a).reg)&&isRc(a)).sort((x,y)=>x.start-y.start);
 
   const winEnd=a=>a.rcOpen+WIN;
-  const inWin=a=>!!a&&a.rcOpen!=null&&Date.now()<winEnd(a)&&isRc(a);   /* runs per event inside jstate: cheap checks first */
+  const inWin=a=>!!a&&a.rcOpen!=null&&!real()&&Date.now()<winEnd(a)&&isRc(a);   /* runs per event inside jstate: cheap checks first */
   const hrsLeft=a=>Math.max(1,Math.ceil((winEnd(a)-Date.now())/36e5));
   const openTxt=a=>`${whenLabel(winEnd(a))} ${hm(winEnd(a))}`;
   /* who is held back by the window: not host, not a regular, not already in / pending / waitlisted, not cancelled, not plain full */
@@ -4405,7 +4470,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   });
 
   NK.rc='固定團';NIC.rc=IC.clock;
-  pushNotice({k:'rc',txt:'『原子習慣』讀書會下週場次開放了，你是老成員，優先報名到明天 19:30',id:7,ago:'10 分鐘前'});
+  if(!REAL)pushNotice({k:'rc',txt:'『原子習慣』讀書會下週場次開放了，你是老成員，優先報名到明天 19:30',id:7,ago:'10 分鐘前'});
 
   /* event page card */
   FX.detailMid.push(a=>{
@@ -4413,7 +4478,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     const s=ser(a),on=subs.has(a.id);
     return `<div class="sh rv"><h2>固定團</h2>${s.reg?'<span class="more">你是老成員</span>':''}</div>
     <div class="rc-card rv" data-rc-card="${a.id}">
-      <div class="rc-hd"><span class="rc-ic">${IC.clock}</span><span><b>${esc(rule(a))}</b><small>${s.held?`已辦 ${s.held} 場 · 老成員 ${s.regs} 人`:'第一場 · 還沒有老成員'}</small></span></div>
+      <div class="rc-hd"><span class="rc-ic">${IC.clock}</span><span><b>${esc(rule(a))}</b>${real()?'':`<small>${s.held?`已辦 ${s.held} 場 · 老成員 ${s.regs} 人`:'第一場 · 還沒有老成員'}</small>`}</span></div>
       <div class="rc-dates">${dates(a,4).map(pill).join('')}</div>
       <p class="rc-pri"><b>老成員優先報名</b>新場次開放後 24 小時內只有老成員能報名${a.mine?'。':'，參加過 3 次就算老成員。'}</p>
       ${a.mine?`<p class="rc-host">你是團主：每場結束後會自動開下一場，並通知訂閱的人。</p>`
@@ -4450,52 +4515,96 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 })();
 
 /* ===== feat/report ===== */
-/* feat/report — 檢舉與封鎖. Event page row, chat-room ⋯ member menu, report sheet, block confirm, 封鎖名單 on Me. */
+/* feat/report — 檢舉與封鎖. Event page row, chat-room ⋯ member menu, report sheet, block confirm, 封鎖名單 on Me.
+   real() (TG_API.enabled): a report is POST /reports {target_type, target_id, reason, detail} and only a 2xx says 已收到檢舉;
+   a block is PUT /me/blocks/:userId (optimistic, rolled back on failure), unblock DELETE; GET /me/blocks seeds the list at
+   sign-in. Targets need a server id (event a.sid, host a.hostId, participant a.people[].id): a demo row gets no buttons, a
+   name that cannot be matched to an id (e.g. a chat line) gets a toast instead of a fake report. Members come from a.people
+   (filled by the participation sync; FX.people fires when it lands) — no invented names in real mode. */
 (()=>{
   const blocked=new Set(),reports=[];
   const REASONS=['騷擾或令人不舒服','詐騙或推銷','不當內容','危險行為','冒用身分','其他'];
+  /* server enum (backend/src/routes/trust.ts reportSchema.reason) */
+  const REASON_CODE={'騷擾或令人不舒服':'harassment','詐騙或推銷':'scam','不當內容':'inappropriate','危險行為':'danger','冒用身分':'impersonation','其他':'other'};
   NK.rp='檢舉';NIC.rp=IC.warn;
+  const real=()=>!!(window.TG_API&&window.TG_API.enabled),A=()=>window.TG_API,enc=encodeURIComponent;
+  const meId=()=>{const m=window.TG_ME;if(m&&m.id)return m.id;const u=A()&&A().user;return u&&u.id||null;};
+  const ids=new Map();   /* display name -> server user id, learned from the rows on screen and from GET /me/blocks */
 
   $('#sh-filter').insertAdjacentHTML('beforebegin','<section class="sheet short form" id="sh-rp" role="dialog" aria-modal="true" aria-label="檢舉與封鎖"><div class="grab"></div><div class="sheet-in" id="rpIn"></div></section>');
   const box=()=>$('#rpIn');
+  let view=null,memId=null;   /* what #rpIn shows: 'report' | 'block' | 'list' | 'mem' */
   const avOf=n=>`<span class="av rp-av">${esc(n[0])}</span>`;
   const isHidden=a=>!!a&&!a.mine&&blocked.has(a.host);
   /* events I'm in (or waiting on) that this person hosts */
   const mineWith=n=>acts.filter(a=>!a.mine&&a.host===n&&(joined.has(a.id)||pending.has(a.id)||waitl.has(a.id)));
+  /* a person's server id: what the button carried, else the host / participant lists of the events on screen */
+  function uidOf(name,hint){
+    if(hint)return hint;if(ids.has(name))return ids.get(name);
+    const pick=[curRoom!=null?byId(curRoom):null,curDetail!=null?byId(curDetail):null,...acts].filter(Boolean);
+    for(const a of pick){if(a.hostId&&a.host===name)return a.hostId;const p=(a.people||[]).find(x=>x&&x.id&&x.name===name);if(p)return p.id;}
+    return null;
+  }
 
   FX.hide.push(a=>isHidden(a));
 
   /* ----- report sheet ----- */
   let rp=null;
   function openReport(t){
-    rp={t,reason:'',block:false};
-    const ev=t.kind==='event'?byId(t.id):null,who=t.kind==='event'?ev.host:t.name;
+    const ev=t.kind==='event'?byId(t.id):null;if(t.kind==='event'&&!ev)return;
+    const who=ev?ev.host:t.name;
+    /* real: the server needs an id. A demo row or a name that matches no participant opens the sheet so the person sees why,
+       but nothing can be chosen or sent */
+    let uid=null,noId=false;
+    if(real()){
+      if(ev){noId=!ev.sid;uid=ev.hostId||null;}
+      else{uid=uidOf(t.name,t.uid);noId=!uid;}
+    }
+    rp={t,reason:'',block:false,uid,noId,busy:false};view='report';
     const head=ev?`<div class="jhd">${chip(ev.cat,46)}<span><b>${esc(headline(ev)[0])}</b><small>團主 ${esc(ev.host)} · ${whenLabel(ev.start)} ${hm(ev.start)}</small></span></div>`
       :`<div class="rp-tgt">${avOf(who)}<span><b>${esc(who)}</b><small>${t.ctx?esc(t.ctx):'檢舉這個人'}</small></span></div>`;
+    if(noId){
+      box().innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>${ev?'檢舉活動':'檢舉'}</h2><span></span></div>
+        ${head}
+        <p class="empty" data-rp-noid><b>目前無法檢舉${ev?'這個活動':'這個人'}</b>這是示意資料，或是還沒有對應的伺服器資料。遇到危險請直接撥打 110、112 或 165。</p>
+        <div class="sfoot"><button class="cta" id="rpGo" disabled>無法送出</button></div>`;
+      showSheet('#sh-rp');return;
+    }
+    const canBlock=!blocked.has(who)&&(!real()||!!uid)&&(!uid||uid!==meId());
     box().innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>${ev?'檢舉活動':'檢舉'}</h2><span></span></div>
       ${head}
       <div class="glbl2">發生了什麼事？</div><div class="frm"><div class="fr"><div class="opts" id="rpReasons" role="radiogroup" aria-label="發生了什麼事">${REASONS.map(r=>`<button type="button" role="radio" data-rp="reason" data-rp-v="${r}" aria-checked="false">${r}</button>`).join('')}</div></div></div>
       <div class="glbl2">補充說明 <span class="opt">選填</span></div><div class="frm"><div class="fr"><textarea class="fld" id="rpDetail" maxlength="200" placeholder="時間、對話內容或其他細節，幫助我們更快處理"></textarea><small class="rp-cnt tnum" id="rpCnt">0/200</small></div></div>
-      ${blocked.has(who)?'':`<div class="frm rp-sw"><label class="fr sw"><span class="lb">一併封鎖 ${esc(who)}<small>對方看不到你，你也看不到對方發起的活動</small></span><input type="checkbox" role="switch" id="rpBlock" data-rp-who="${esc(who)}"></label></div>`}
+      ${canBlock?`<div class="frm rp-sw"><label class="fr sw"><span class="lb">一併封鎖 ${esc(who)}<small>對方看不到你，你也看不到對方發起的活動</small></span><input type="checkbox" role="switch" id="rpBlock" data-rp-who="${esc(who)}"></label></div>`:''}
       <p class="hint pad rp-hint">檢舉內容不會讓對方知道是誰送出的。</p>
       <div class="sfoot"><button class="cta" id="rpGo" data-rp="go" disabled>送出檢舉</button></div>`;
     showSheet('#sh-rp');
   }
   function submitReport(){
-    if(!rp||!rp.reason)return;
+    if(!rp||!rp.reason||rp.busy||rp.noId)return;
     const t=rp.t,ev=t.kind==='event'?byId(t.id):null,who=ev?ev.host:t.name,sw=$('#rpBlock'),blk=!!(sw&&sw.checked);
     const detail=($('#rpDetail').value||'').trim().slice(0,200);
-    reports.push({kind:t.kind,id:t.id||null,name:who,reason:rp.reason,detail,block:blk,at:Date.now()});
     const label=ev?`「${headline(ev)[0]}」`:who;
-    if(blk)doBlock(who,true);
-    pushNotice(Object.assign({k:'rp',txt:`已收到你對${label}的檢舉（${rp.reason}），我們會在 24 小時內處理`,un:false},ev&&!isHidden(ev)?{id:ev.id}:{}));
-    rp=null;closeSheet();toast('已收到檢舉，我們會在 24 小時內處理');refresh();
+    const done=extra=>{
+      reports.push(Object.assign({kind:t.kind,id:t.id||null,name:who,reason:rp.reason,detail,block:blk,at:Date.now()},extra));
+      if(blk)doBlock(who,true,ev?ev.hostId:rp.uid);
+      pushNotice(Object.assign({k:'rp',txt:`已收到你對${label}的檢舉（${rp.reason}），我們會在 24 小時內處理`,un:false},ev&&!isHidden(ev)?{id:ev.id}:{}));
+      rp=null;closeSheet();toast('已收到檢舉，我們會在 24 小時內處理');refresh();
+    };
+    if(!real())return done({});
+    const body=ev?{target_type:'event',target_id:ev.sid}:{target_type:'user',target_id:rp.uid};
+    if(!body.target_id){toast('目前無法檢舉');return;}
+    body.reason=REASON_CODE[rp.reason]||'other';body.detail=detail;
+    const snap=rp,btn=$('#rpGo');snap.busy=true;if(btn){btn.disabled=true;btn.textContent='送出中…';}
+    A().req('/reports',{body}).then(r=>{if(rp!==snap)return;done({sid:body.target_id,type:body.target_type,rid:r&&r.id||null});},e=>{
+      snap.busy=false;if(rp===snap){const b=$('#rpGo');if(b){b.disabled=false;b.textContent='送出檢舉';}}A().fail(e);});
   }
   $('#sh-rp').addEventListener('input',e=>{if(e.target.id==='rpDetail')$('#rpCnt').textContent=`${e.target.value.length}/200`;});
 
   /* ----- block ----- */
-  function openBlock(n){
-    const L=mineWith(n);
+  function openBlock(n,uid){
+    if(real()){uid=uidOf(n,uid);if(!uid){toast('目前無法封鎖這個人');return;}if(uid===meId()){toast('不能封鎖自己');return;}}
+    const L=real()?[]:mineWith(n);view='block';
     box().innerHTML=`<div class="shh"><button class="l" data-close>取消</button><h2>封鎖</h2><span></span></div>
       <div class="rp-tgt">${avOf(n)}<span><b>封鎖 ${esc(n)}？</b><small>對方不會收到通知</small></span></div>
       <div class="group rp-fx">
@@ -4505,27 +4614,52 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
         ${L.length?`<div class="rp-li rp-warn"><i>${IC.clock}</i><span>你已加入的${L.map(a=>`「${esc(headline(a)[0])}」`).join('、')}也會一併退出</span></div>`:''}
       </div>
       <p class="hint pad rp-hint">隨時可以在「我的 › 封鎖名單」解除。</p>
-      <div class="sfoot"><button class="cta rp-cta" data-rp="doblock" data-rp-v="${esc(n)}">封鎖</button></div>`;
+      <div class="sfoot"><button class="cta rp-cta" data-rp="doblock" data-rp-v="${esc(n)}"${uid?` data-rp-uid="${esc(uid)}"`:''}>封鎖</button></div>`;
     showSheet('#sh-rp');
   }
-  function doBlock(n,quiet){
+  /* step out of a page that just disappeared */
+  const stepOut=()=>{while(ovStack.length){const t=ovStack[ovStack.length-1].id;
+    if((t==='o-detail'&&isHidden(byId(curDetail)))||(t==='o-room'&&curRoom!=null&&isHidden(byId(curRoom))))closeOv();else break;}};
+  function doBlock(n,quiet,uid){
     if(blocked.has(n))return;
+    if(real()){
+      uid=uidOf(n,uid);if(!uid){toast('目前無法封鎖這個人');return;}
+      blocked.add(n);ids.set(n,uid);follows.delete(n);
+      stepOut();if(!quiet)toast(`已封鎖 ${n}`);reRoom();refresh();
+      A().req(`/me/blocks/${enc(uid)}`,{method:'PUT'}).then(null,e=>{blocked.delete(n);A().fail(e);reRoom();refresh();if(view==='list'&&openSheet&&openSheet.id==='sh-rp')renderList();});
+      return;
+    }
     blocked.add(n);follows.delete(n);
     const L=mineWith(n);
     L.forEach(a=>{const was=joined.has(a.id);joined.delete(a.id);pending.delete(a.id);waitl.delete(a.id);if(was)fxRun('left',a);});
-    /* step out of a page that just disappeared */
-    while(ovStack.length){const t=ovStack[ovStack.length-1].id;
-      if((t==='o-detail'&&isHidden(byId(curDetail)))||(t==='o-room'&&curRoom!=null&&isHidden(byId(curRoom))))closeOv();else break;}
+    stepOut();
     if(!quiet)toast(L.length?`已封鎖 ${n}，並退出 ${L.length} 個活動`:`已封鎖 ${n}`);
     reRoom();
   }
-  function unblock(n){blocked.delete(n);toast(`已解除封鎖 ${n}`);renderList();refresh();reRoom();}
+  function unblock(n){
+    if(!blocked.has(n))return;
+    blocked.delete(n);toast(`已解除封鎖 ${n}`);renderList();refresh();reRoom();
+    if(!real())return;
+    const uid=uidOf(n);if(!uid)return;
+    A().req(`/me/blocks/${enc(uid)}`,{method:'DELETE'}).then(null,e=>{blocked.add(n);A().fail(e);if(view==='list'&&openSheet&&openSheet.id==='sh-rp')renderList();refresh();reRoom();});
+  }
   /* refresh() doesn't touch an open room; re-render it so folding follows the block list */
   const reRoom=()=>{if(curRoom!=null&&ovOpen('#o-room')&&byId(curRoom))renderRoom();};
 
+  /* real: the server's list is the truth at sign-in and whenever 封鎖名單 opens; signed out, nothing is blocked */
+  let loadingBlocks=false;
+  function loadBlocks(){
+    if(!real()||!A().token||loadingBlocks)return;loadingBlocks=true;
+    A().req('/me/blocks').then(r=>{
+      blocked.clear();(r&&r.items||[]).forEach(u=>{if(u&&u.display_name){blocked.add(u.display_name);if(u.id)ids.set(u.display_name,u.id);}});
+      refresh();reRoom();if(view==='list'&&openSheet&&openSheet.id==='sh-rp')renderList();
+    },()=>{}).then(()=>{loadingBlocks=false;});
+  }
+  if(window.TG_API&&TG_API.on)TG_API.on('auth',u=>{if(!real())return;if(u)loadBlocks();else{blocked.clear();refresh();}});
+
   /* ----- 封鎖名單 ----- */
   function renderList(){
-    const L=[...blocked];
+    const L=[...blocked];view='list';
     box().innerHTML=`<div class="shh"><span></span><h2>封鎖名單</h2><button class="r" data-close>完成</button></div>
       ${L.length?`<div class="group rp-list">${L.map(n=>`<div class="cell">${avOf(n)}<span style="min-width:0"><b>${esc(n)}</b><small>${acts.some(a=>a.host===n)?'團主 · 活動已隱藏':'已封鎖'}</small></span><button class="mini no" data-rp="unblock" data-rp-v="${esc(n)}">解除封鎖</button></div>`).join('')}</div>`
         :`<p class="empty"><b>沒有封鎖任何人</b>在活動頁或群組的「⋯」可以封鎖。</p>`}
@@ -4535,15 +4669,25 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   /* ----- chat room ⋯ ----- */
   const roomMembers=a=>{const m=[];if(!a.mine)m.push({n:a.host,host:true});
     people(a,Math.max(1,Math.min(count(a)-1,5))).forEach(p=>{const n=p+'○○';if(!m.some(x=>x.n===n))m.push({n,host:false});});return m;};
+  /* real: the host row plus a.people (server participants); never me, never a made-up name */
+  const membersReal=a=>{const my=meId(),m=[];
+    if(!a.mine&&a.hostId&&a.hostId!==my)m.push({n:a.host,uid:a.hostId,host:true});
+    (a.people||[]).forEach(p=>{if(!p||!p.id||p.id===my||p.id===a.hostId||m.some(x=>x.uid===p.id))return;m.push({n:p.name||'成員',uid:p.id,host:false});});
+    return m;};
   function openMembers(id){
-    const a=byId(id);if(!a)return;
+    const a=byId(id);if(!a)return;view='mem';memId=id;
+    const R=real(),rows=R?membersReal(a):roomMembers(a).map(m=>({n:m.n,uid:null,host:m.host}));
+    const noPpl=R&&!(a.people&&a.people.length);
     box().innerHTML=`<div class="shh"><span></span><h2>成員</h2><button class="r" data-close>完成</button></div>
       <div class="jhd">${chip(a.cat,46)}<span><b>${esc(headline(a)[0])}</b><small>${count(a)} 人 · 有人讓你不舒服可以檢舉或封鎖</small></span></div>
-      <div class="group rp-mem" id="rpMem">${roomMembers(a).map(({n,host})=>`<div class="cell" data-rp-name="${esc(n)}">${avOf(n)}<span style="min-width:0"><b>${esc(n)}</b><small>${host?'團主':'成員'}</small></span>${blocked.has(n)
+      <div class="group rp-mem" id="rpMem">${rows.map(({n,uid,host})=>`<div class="cell" data-rp-name="${esc(n)}"${uid?` data-rp-uid="${esc(uid)}"`:''}>${avOf(n)}<span style="min-width:0"><b>${esc(n)}</b><small>${host?'團主':'成員'}</small></span>${blocked.has(n)
         ?`<span class="rp-done">已封鎖</span>`
-        :`<span class="rp-two"><button class="rp-tb" data-rp="rep-user" data-rp-v="${esc(n)}" data-rp-ctx="「${esc(headline(a)[0])}」${host?'團主':'成員'}">檢舉</button><button class="rp-tb rp-red" data-rp="blk" data-rp-v="${esc(n)}">封鎖</button></span>`}</div>`).join('')}</div>`;
+        :`<span class="rp-two"><button class="rp-tb" data-rp="rep-user" data-rp-v="${esc(n)}"${uid?` data-rp-uid="${esc(uid)}"`:''} data-rp-ctx="「${esc(headline(a)[0])}」${host?'團主':'成員'}">檢舉</button><button class="rp-tb rp-red" data-rp="blk" data-rp-v="${esc(n)}"${uid?` data-rp-uid="${esc(uid)}"`:''}>封鎖</button></span>`}</div>`).join('')}
+      ${noPpl?`<p class="empty" data-rp-noppl>${joined.has(a.id)||a.mine?`目前 ${count(a)} 人`:'只有參加者能看到名單'}</p>`:''}</div>`;
     showSheet('#sh-rp');
   }
+  /* participants land after the page opened: redraw the open member sheet */
+  (FX.people||(FX.people=[])).push(a=>{if(a&&view==='mem'&&memId===a.id&&openSheet&&openSheet.id==='sh-rp')openMembers(a.id);});
   FX.room.push(a=>{
     const h=$('#roomHead');if(!h||h.querySelector('[data-rp="mem"]'))return;
     const b=document.createElement('button');b.type='button';b.className='rp-more';b.dataset.rp='mem';b.dataset.rpV=a.id;b.setAttribute('aria-label','成員、檢舉與封鎖');b.textContent='⋯';
@@ -4603,19 +4747,26 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
 
   /* ----- entry points ----- */
-  FX.detailEnd.push(a=>a.mine?'':`<div class="rp-row rv"><button type="button" data-rp="rep-ev" data-rp-v="${a.id}">檢舉這個活動</button><span aria-hidden="true">・</span><button type="button" data-rp="blk" data-rp-v="${esc(a.host)}">封鎖團主 ${esc(a.host)}</button></div>`);
+  FX.detailEnd.push(a=>{
+    if(a.mine)return '';
+    if(!real())return `<div class="rp-row rv"><button type="button" data-rp="rep-ev" data-rp-v="${a.id}">檢舉這個活動</button><span aria-hidden="true">・</span><button type="button" data-rp="blk" data-rp-v="${esc(a.host)}">封鎖團主 ${esc(a.host)}</button></div>`;
+    /* real: only what the server can act on */
+    const e=a.sid?`<button type="button" data-rp="rep-ev" data-rp-v="${a.id}">檢舉這個活動</button>`:'';
+    const b=a.hostId&&a.hostId!==meId()?`<button type="button" data-rp="blk" data-rp-v="${esc(a.host)}" data-rp-uid="${esc(a.hostId)}">封鎖團主 ${esc(a.host)}</button>`:'';
+    return e||b?`<div class="rp-row rv">${e}${e&&b?'<span aria-hidden="true">・</span>':''}${b}</div>`:'';
+  });
   FX.meEnd.push(()=>`<div class="sh rv"><h2>隱私與安全</h2></div><div class="group rv"><button class="cell rp-me" data-rp="list"><span class="rp-ic">${IC.warn}</span><span style="min-width:0"><b>封鎖名單</b><small>${blocked.size?`${blocked.size} 人`:'沒有封鎖任何人'}</small></span><span class="rt"><span class="tnum" id="rpMeN">${blocked.size}</span></span></button></div>`);
 
   FX.click.push((b,d)=>{
     if(!d.rp)return false;const v=d.rpV;
     switch(d.rp){
       case 'rep-ev':openReport({kind:'event',id:+v});break;
-      case 'rep-user':openReport({kind:'user',name:v,ctx:d.rpCtx});break;
+      case 'rep-user':openReport({kind:'user',name:v,ctx:d.rpCtx,uid:d.rpUid});break;
       case 'reason':if(!rp)break;rp.reason=v;$$('#rpReasons button').forEach(x=>x.setAttribute('aria-checked',String(x.dataset.rpV===v)));$('#rpGo').disabled=false;break;
       case 'go':submitReport();break;
-      case 'blk':openBlock(v);break;
-      case 'doblock':closeSheet();doBlock(v);refresh();break;
-      case 'list':renderList();showSheet('#sh-rp');break;
+      case 'blk':openBlock(v,d.rpUid);break;
+      case 'doblock':closeSheet();doBlock(v,false,d.rpUid);refresh();break;
+      case 'list':renderList();showSheet('#sh-rp');loadBlocks();break;
       case 'unblock':unblock(v);break;
       case 'mem':openMembers(+v);break;
       case 'show':reveal(v);break;
@@ -4624,38 +4775,56 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     return true;
   });
 
-  window.TG_RP={blocked,reports,REASONS,block:n=>{doBlock(n);refresh();},unblock:n=>unblock(n),isHidden,shown};
+  window.TG_RP={blocked,reports,REASONS,REASON_CODE,ids,uidOf,real,loadBlocks,openReport,openMembers,block:n=>{doBlock(n);refresh();},unblock:n=>unblock(n),isHidden,shown};
 })();
 
 /* ===== feat/safety ===== */
 /* ===== feat/safety: 活動後報平安 =====
    Mid/high-risk events ask everyone "到家了嗎？" after they end. Guest: answer, snooze 30 min (escalates; second miss offers
    to notify the emergency contact), or open the help sheet (112, contact, host, location). Host: who has checked in so far.
-   Prototype only: nothing is sent anywhere. */
+   Seed mode (backend off) is a prototype: nothing is sent anywhere and two demo PAST rows drive the cards.
+   real() (TG_API.enabled): no demo rows, no demo notice, no card, and no button that claims to have notified anyone or shared
+   a location. What stays is honest: the 需要幫忙 sheet with tel: links for 110 / 112 / 165, the signed-in person's own
+   emergency contact from GET /me/emergency-contact (only when one exists), the 結束後報平安 line on upcoming risky events,
+   and the 檢舉 entry on the feedback sheet. The real safety check-in (POST /safety/:eventId/safe …) is not wired yet. */
 (()=>{
   const SNOOZE_MS=20000;            /* demo: "30 分鐘" is 20 s here; tests fire it with TG_SF.tick() */
   const now=Date.now();
+  const real=()=>!!(window.TG_API&&window.TG_API.enabled),A=()=>window.TG_API;
   const risky=a=>{const o=optsOf(a);return o.risk!=='low'||needEmg(a);};
   /* upcoming events that will ask: outdoor mid-risk, high-risk, or emergency-contact events (indoor badminton doesn't) */
   const asks=a=>{const o=optsOf(a);return o.risk==='high'||o.emg||(o.risk==='mid'&&o.venue==='戶外');};
   const riskP=p=>p.risk||'low';
 
-  /* --- demo data: a just-ended high-risk event you joined, and a risky one you hosted --- */
+  /* --- demo data: a just-ended high-risk event you joined, and a risky one you hosted (seed mode only) --- */
   const G={id:103,cat:'outdoor',title:'北勢溪溯溪',host:'江志遠',risk:'high',dur:300,place:'烏來',ppl:['江','林','黃','王','蔡','郭'],done:true,
     emg:{name:'林美玲',rel:'家人',phone:'0912 345 678'}};
   G.start=now-(G.dur+40)*6e4;
   const H={id:104,cat:'outdoor',title:'夜爬七星山',host:'安安',mine:true,risk:'mid',dur:240,place:'陽明山',ppl:['張','吳','劉','許','邱','廖'],done:true,
     safe:['張','吳','劉','許']};
   H.start=now-(H.dur+70)*6e4;
-  PAST.push(G,H);
+  const NOTE={k:'sf',txt:`「${G.title}」結束了，到家了嗎？`,ago:agoText(40),un:true,pid:G.id,open:()=>{}};
+  let demo=false;
+  function installDemo(){if(demo)return;PAST.push(G,H);NOTICES.unshift(NOTE);demo=true;}
+  /* the backend came on after boot (tests flip TG_API.enabled): the demo rows and their notice go away */
+  function dropDemo(){if(!demo)return;[G,H].forEach(p=>{const i=PAST.indexOf(p);if(i>=0)PAST.splice(i,1);});
+    for(let i=NOTICES.length-1;i>=0;i--){const x=NOTICES[i];if(x===NOTE||(x.pid===G.id||x.pid===H.id))NOTICES.splice(i,1);}
+    clearTimeout(S.timer);S.timer=null;demo=false;}
 
   NK.sf='平安';NIC.sf=IC.check;
-  NOTICES.unshift({k:'sf',txt:`「${G.title}」結束了，到家了嗎？`,ago:agoText(40),un:true,pid:G.id,open:()=>{}});
 
   /* guest state: ask → snooze → ask (miss 1) → snooze → esc (miss 2, confirm contact) ; safe / notified */
   const S={st:'ask',miss:0,timer:null,due:0,notified:false,help:{emg:'',host:false,loc:false}};
   const H2={reminded:false};
-  const contact=()=>myEmg.name?{name:myEmg.name,rel:myEmg.rel||'家人',phone:myEmg.phone}:G.emg;
+  if(!real())installDemo();
+  /* real: the signed-in person's own contact, read once per session from GET /me/emergency-contact (null when none is saved) */
+  const EC={c:null,loaded:false,loading:false};
+  function loadContact(){
+    if(!real()||!A().token||EC.loading||EC.loaded)return;EC.loading=true;
+    A().req('/me/emergency-contact').then(r=>{EC.c=r&&r.name&&r.phone?{name:r.name,rel:r.relation||'',phone:r.phone}:null;EC.loaded=true;},()=>{}).then(()=>{EC.loading=false;if(openSheet&&openSheet.id==='sh-sfhelp')renderHelp();});
+  }
+  if(window.TG_API&&TG_API.on)TG_API.on('auth',()=>{EC.c=null;EC.loaded=false;});
+  const contact=()=>real()?EC.c:myEmg.name?{name:myEmg.name,rel:myEmg.rel||'家人',phone:myEmg.phone}:G.emg;
   const endAgo=p=>agoText(Math.round((Date.now()-p.start-p.dur*6e4)/6e4));
   const btns=(...b)=>`<div class="sf-acts">${b.join('')}</div>`;
   const B={
@@ -4691,20 +4860,34 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       <button class="sf-b${H2.reminded?'':' sf-pri'}" data-sf-remind="${p.id}" ${H2.reminded?'disabled':''}>${H2.reminded?'已提醒，等他們回覆':'提醒沒回報的人'}</button>`:'<p>大家都平安到家了。</p>'}</div>`;
   }
 
-  FX.chatTop.push(()=>guestCard()+hostCard());
+  FX.chatTop.push(()=>{if(real()){dropDemo();return '';}return guestCard()+hostCard();});
 
   FX.detailTop.push(a=>{
     if(!risky(a)||!asks(a)||a.start<=Date.now())return '';
     /* stack link: data-stk-* read by feat/stack */
     return `<div class="sf-pre rv" data-stk-k="sf" data-stk-p="5" data-stk-s="活動結束後要報平安"><span class="sf-ok">${IC.check}</span><span><b>活動結束後 App 會請大家報平安</b><small>到家按一下就好，${a.mine?'你會看到誰還沒回報':'團主會知道你平安'}。</small></span></div>`;
   });
+  /* real: the help sheet is reachable from 我的 › 隱私與安全 (feat/report puts that heading in meEnd just before this) */
+  FX.meEnd.push(()=>real()?`<div class="group rv"><button class="cell" data-sf-help="0"><span class="rp-ic">${IC.warn}</span><span style="min-width:0"><b>緊急求助</b><small>110 報案 · 112 緊急 · 165 反詐騙${EC.c?' · 你的緊急聯絡人':''}</small></span><span class="mini">打開</span></button></div>`:'');
 
   /* --- help sheet --- */
+  /* 112 first, 165 right under it (feat/host's test checks that order), then 110 */
+  const LINES=`<a class="sf-112" href="tel:112" data-sf-112>撥打 112<small>手機沒有 SIM 卡或收不到訊號也能撥</small></a>
+      <a class="sf-165" href="tel:165" data-sf-165><span class="sf-n tnum">165</span><span style="min-width:0"><b>165 反詐騙諮詢專線</b><small>有人要你加 LINE、投資或匯款？先打這支電話問</small></span></a>
+      <a class="sf-165" href="tel:110" data-sf-110><span class="sf-n tnum">110</span><span style="min-width:0"><b>110 報案專線</b><small>有人身危險、被跟蹤或受到威脅，直接報警</small></span></a>`;
+  function renderHelpReal(){
+    loadContact();const c=EC.c;
+    $('#sfHelpIn').innerHTML=`<div class="shh"><button class="l" data-close>關閉</button><h2>需要幫忙</h2><span></span></div>
+      ${LINES}
+      ${c?`<div class="glbl2">你的緊急聯絡人</div><div class="group sf-hg"><a class="cell" href="tel:${esc(String(c.phone).replace(/[^0-9+]/g,''))}" data-sf-ec><span class="av">${esc(c.name[0])}</span><span style="min-width:0"><b>${esc(c.name)}</b><small>${[c.rel,c.phone].filter(Boolean).map(esc).join(' · ')}</small></span><span class="mini">撥打</span></a></div>`
+        :EC.loading?'<p class="hint pad" data-sf-ecwait>正在讀取你的緊急聯絡人…</p>':''}
+      <p class="hint pad">遇到危險請直接撥打電話。App 不會替你聯絡任何人，也不會傳送你的位置。</p>`;
+  }
   function renderHelp(){
+    if(real())return renderHelpReal();
     const p=G,c=contact(),h=S.help;
     $('#sfHelpIn').innerHTML=`<div class="shh"><button class="l" data-close>關閉</button><h2>需要幫忙</h2><span></span></div>
-      <a class="sf-112" href="tel:112" data-sf-112>撥打 112<small>手機沒有 SIM 卡或收不到訊號也能撥</small></a>
-      <a class="sf-165" href="tel:165" data-sf-165><span class="sf-n tnum">165</span><span style="min-width:0"><b>165 反詐騙諮詢專線</b><small>有人要你加 LINE、投資或匯款？先打這支電話問</small></span></a>
+      ${LINES}
       <div class="glbl2">通知其他人</div>
       <div class="group sf-hg">
         ${h.emg==='ask'?`<div class="cell sf-cf"><span class="av">${esc(c.name[0])}</span><span style="min-width:0"><b>要通知 ${esc(c.name)} 嗎？</b><small>會附上你的位置和「${esc(p.title)}」的資訊</small></span><span class="sf-cfb"><button class="mini no" data-sf-hemg="no">取消</button><button class="mini" data-sf-hemg="ok">通知</button></span></div>`
@@ -4727,23 +4910,27 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
   const rr=renderRate;renderRate=function(){const r=rr.apply(this,arguments);try{rateReport();}catch(e){console.error(e);}return r;};
 
-  /* --- actions --- */
+  /* --- actions (demo only; in real mode the cards and the notify / share buttons do not exist) --- */
   function fire(){
-    clearTimeout(S.timer);S.timer=null;if(S.st!=='snooze')return S;
+    clearTimeout(S.timer);S.timer=null;if(real()||S.st!=='snooze')return S;
     S.miss++;S.st=S.miss>=2?'esc':'ask';
     toast(S.miss>=2?`「${G.title}」：還沒收到你報平安`:`「${G.title}」：到家了嗎？`);
     refresh();return S;
   }
   function markSafe(){
+    if(real())return;
     clearTimeout(S.timer);S.timer=null;S.st='safe';
     pushNotice({k:'sf',txt:`已向團主 ${G.host} 報平安「${G.title}」`,un:false,pid:G.id,open:()=>{}});
     toast(`已報平安，${G.host} 收到了`);
   }
   FX.click.push((b,d)=>{
+    if(d.sfHelp){renderHelp();showSheet('#sh-sfhelp');return true;}
+    const demoKeys=['sfSafe','sfSnooze','sfEmg','sfHemg','sfHhost','sfHloc','sfRemind'];
+    if(!demoKeys.some(k=>d[k]!==undefined))return false;
+    if(real())return true;   /* a stale demo button never fakes a notification */
     if(d.sfSafe){markSafe();if(openSheet&&openSheet.id==='sh-sfhelp')closeSheet();refresh();return true;}
     if(d.sfSnooze){S.st='snooze';S.due=Date.now()+30*6e4;clearTimeout(S.timer);S.timer=setTimeout(fire,SNOOZE_MS);toast('好，30 分鐘後再問你');refresh();return true;}
     if(d.sfEmg){const c=contact();S.st='notified';S.notified=true;S.help.emg='ok';toast(`已通知 ${c.name}（原型，沒有真的送出）`);refresh();return true;}
-    if(d.sfHelp){renderHelp();showSheet('#sh-sfhelp');return true;}
     if(d.sfHemg){const c=contact();
       if(d.sfHemg==='ask')S.help.emg=S.help.emg==='ok'?'ok':'ask';
       else if(d.sfHemg==='no')S.help.emg='';
@@ -4752,10 +4939,11 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     if(d.sfHhost){S.help.host=true;toast(`已通知團主 ${G.host}`);renderHelp();return true;}
     if(d.sfHloc){S.help.loc=true;toast('已分享目前位置');renderHelp();return true;}
     if(d.sfRemind){if(!H2.reminded){H2.reminded=true;const miss=H.ppl.filter(u=>!H.safe.includes(u));toast(`已提醒 ${miss.map(u=>u+'○○').join('、')}`);refresh();}return true;}
-    return false;
+    return true;
   });
 
-  window.TG_SF={safe:()=>{markSafe();refresh();return S.st;}/* pastview link */,state:()=>({st:S.st,miss:S.miss,help:Object.assign({},S.help),reminded:H2.reminded}),tick:fire,guest:G,host:H,contact,SNOOZE_MS};
+  window.TG_SF={safe:()=>{markSafe();refresh();return S.st;}/* pastview link */,state:()=>({st:S.st,miss:S.miss,help:Object.assign({},S.help),reminded:H2.reminded}),tick:fire,
+    get guest(){return demo?G:null},get host(){return demo?H:null},contact,SNOOZE_MS,real,EC,loadContact,demo:()=>demo};
 })();
 
 /* ===== feat/stack ===== */
@@ -4823,6 +5011,10 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 (()=>{
   const A=TG_API,busy=new Set(),svBusy=new Set();
   const live=a=>!!(a&&a.sid&&A.enabled);
+  /* backend on but this row has no server id (a seed row still around while offline): nothing can be done with it */
+  const dead=a=>!!(A.enabled&&a&&!a.sid);
+  const NOSRV='連不上伺服器，請稍後再試';
+  const refuse=()=>{toast(NOSRV);return true;};
   const signed=()=>!!A.token;
   const BF=()=>window.TG_BF,PO=()=>window.TG_PO&&TG_PO.PO;
   /* server codes whose own message is not the clearest thing to show */
@@ -4830,7 +5022,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     offer_expired:'候補名額已逾時，已讓給下一位',no_offer:'這個名額已經不在了',not_participant:'你已經不在這個活動裡了'};
   /* our local picture was out of date: ask the read side to fetch the event again */
   const STALE=new Set(['not_participant','already_joined','already_applied','no_offer','offer_expired','pact_required','full','event_closed','event_started']);
-  const sync=a=>{try{const S=window.TG_SYNC_EVENTS;if(S&&S.refreshOne){const p=S.refreshOne(a.id);if(p&&p.catch)p.catch(()=>{});}}catch(e){}};
+  const sync=a=>{try{const S=window.TG_SYNC_EVENTS;if(S&&S.refreshOne){const p=S.refreshOne(a.id,true);if(p&&p.catch)p.catch(()=>{});}}catch(e){}};
   const hd=a=>headline(a)[0];
 
   /* ----- sign-in prompt ----- */
@@ -4843,7 +5035,8 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
   function oops(e,a){
     toast(e&&MSG[e.code]||e&&e.message||'操作沒有成功');
-    if(e&&e.status===401)setTimeout(()=>askSignIn('登入已過期，請重新登入'),0);
+    /* a 401 already signed you out (00api) and feat/linelogin's gate is up; only without that module ask here */
+    if(e&&e.status===401&&!window.TG_LINE)setTimeout(()=>askSignIn('登入已過期，請重新登入'),0);
     if(a&&e&&STALE.has(e.code))sync(a);
   }
 
@@ -4922,6 +5115,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
 
   FX.tap.push((a,s)=>{
+    if(dead(a))return refuse();
     if(!live(a)||s==='mine'||s==='full'||s==='cancelled')return false;
     if(busy.has(a.id))return true;
     if(!signed()){askSignIn(s==='in'||s==='pending'||s==='wait'?'登入後才能更改報名':'登入後才能報名這個活動');return true;}
@@ -4938,6 +5132,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 
   FX.click.push((b,d)=>{
     if(d.saLine!==undefined){closeSheet();if(window.TG_LINE)TG_LINE.start();return true;}
+    if(d.jgo!==undefined&&jn&&dead(byId(jn.id))){closeSheet();jn=null;return refuse();}
     /* the join sheet's 送出: same fields core collects, sent to the server instead of commitJoin */
     if(d.jgo!==undefined&&jn&&live(byId(jn.id))){
       if($('#jnGo').disabled)return true;
@@ -4951,7 +5146,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       closeSheet();jn=null;join(a,s,info);return true;
     }
     if(d.save!==undefined&&+d.save){
-      const a=byId(+d.save);if(!live(a))return false;
+      const a=byId(+d.save);if(dead(a))return refuse();if(!live(a))return false;
       if(svBusy.has(a.id))return true;
       if(!signed()){askSignIn('登入後才能收藏活動');return true;}
       const id=a.id,was=saved.has(id);svBusy.add(id);put(saved,id,!was);toast(was?'已移除收藏':'已加入收藏');refresh();
@@ -4967,9 +5162,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     const b=e.target&&e.target.closest&&e.target.closest('button');if(!b||b.disabled)return;const d=b.dataset;
     if(b.id==='crPost'){e.stopPropagation();post();return;}
     const oid=d.bfOk||d.bfNo;
-    if(oid){const a=byId(+oid);if(!live(a))return;e.stopPropagation();answerOffer(a,!!d.bfOk);return;}
+    if(oid){const a=byId(+oid);if(dead(a)){e.stopPropagation();refuse();return;}if(!live(a))return;e.stopPropagation();answerOffer(a,!!d.bfOk);return;}
     if(d.poDs){
-      const a=byId(+d.poDs.split(':')[0]);if(!live(a))return;
+      const a=byId(+d.poDs.split(':')[0]);if(dead(a)){e.stopPropagation();refuse();return;}if(!live(a))return;
       if(busy.has(a.id)){e.stopPropagation();return;}
       const pre=snap(a);setTimeout(()=>plusChanged(a,pre),0);
     }
@@ -4983,7 +5178,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
 
   /* ----- comments ----- */
   document.addEventListener('submit',e=>{
-    if(!e.target||e.target.id!=='cmForm')return;const a=byId(curDetail);if(!live(a))return;
+    if(!e.target||e.target.id!=='cmForm')return;const a=byId(curDetail);
+    if(dead(a)){e.preventDefault();e.stopPropagation();refuse();return;}
+    if(!live(a))return;
     e.preventDefault();e.stopPropagation();
     const inp=$('#cmInput'),t=inp.value.trim();if(!t)return;
     if(!signed()){askSignIn('登入後才能留言');return;}
@@ -5029,7 +5226,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     posting=false;btn.textContent=t0;
     const id=A.ids.local(r.id),place=b.place_name;
     let a=byId(id);
-    if(!a){a={id,sid:r.id,cat:b.category,title:b.title,host:(A.user&&A.user.display_name)||'安安',hr:4.9,att:96,start:b.starts_at,end:b.ends_at,place,km:.3,ang:Math.round(Math.random()*360),fee,
+    if(!a){a={id,sid:r.id,hostId:(A.user&&A.user.id)||null,cat:b.category,title:b.title,host:(A.user&&A.user.display_name)||'安安',hr:4.9,att:96,start:b.starts_at,end:b.ends_at,place,km:.3,ang:Math.round(Math.random()*360),fee,
       cap:r.capacity||c0,minN:r.min_people||m0,n:r.seats_taken||1,addr:b.address||place,say:b.description||'第一次發起這個，歡迎一起來。',mine:true,ago:0,cm:[],opts:o};acts.push(a);}
     ensureChat(a);fxRun('post',a);st.fresh=id;st.seg='all';
     const rule={'每週':'weekly','隔週':'biweekly'}[o.repeat];
@@ -5040,14 +5237,16 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
 
   /* write/oops/live/signed are shared with feat/host (team actions use the same optimistic-then-rollback path) */
-  window.TG_SYNC_ACTIONS={busy,svBusy,apply,join,leave,answerOffer,askSignIn,createBody,pactBody,write,oops,live,signed,MSG,get posting(){return posting;}};
+  window.TG_SYNC_ACTIONS={busy,svBusy,apply,join,leave,answerOffer,askSignIn,createBody,pactBody,write,oops,live,dead,signed,MSG,NOSRV,get posting(){return posting;}};
 })();
 
 /* ===== feat/sync_events ===== */
 /* ===== feat/sync_events: events come from the backend (prefix se) =====
    Read path only. At boot GET /events (both modes, every page up to a cap) replaces the seed rows; opening an event fetches its
-   detail (address for joined people, my_status, pact, seats) and comments. Until it answers the seed stays on screen; if it
-   fails the seed stays and one quiet line says so. Under jsdom TG_API is off, so the tests see the seed as before.
+   detail (address for joined people, my_status, pact, seats), comments and the participant list (a.people). With the backend on
+   (REAL: TG_API.enabled) the seed is never shown: rows without a sid are hidden while loading, dropped when a mode answers, and
+   when it cannot be reached the home is an empty state (連不上伺服器 + 重試). Under jsdom TG_API is off, so the tests see the seed.
+   Contract for other modules: a.sid, a.hostId (server user id), a.people=[{id,name,avatar}] + FX.people hooks (see loadPeople).
    Seed art: theme/poster.js POSTER_ART is keyed by the seed ids, so a server event whose title equals a seed row's title (same
    mode) keeps that seed's id. TG_API.ids is taught the pair, so ids.local(sid) and ids.server(a.id) agree with a.id/a.sid. */
 (()=>{
@@ -5057,8 +5256,14 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   const PACT={ride:[['own','station','pickup','car'],['各自到現場','捷運站集合','可順路接送','有車可載']],budget:[['lt300','300_800','800_1500','gt1500'],['$300 以下','$300–800','$800–1500','$1500 以上']],
     drink:[['none','light','likes'],['不喝酒','微醺','喜歡喝']],diet:[['any','flexi','lacto','vegan'],['都吃','鍋邊素','蛋奶素','全素']],
     avoid:[['shellfish','beef','spicy','cilantro'],['甲殼海鮮','牛','辣','香菜']],length:[['quick','half','open','full'],['快閃 1–1.5 小時','半日 2–3 小時','看感覺續攤','全日']]};
-  const ok={group:false,date:false},failed={group:false,date:false};
+  const ok={group:false,date:false},failed={group:false,date:false},busy={group:false,date:false};
   let gen=0,loadedTok=null,seeds=null;
+  /* REAL = the backend is on. Read at call time: the tests flip TG_API.enabled after boot */
+  const REAL=()=>!!(window.TG_API&&TG_API.enabled);
+  /* other modules redraw the participant list from here: (FX.people=FX.people||[]).push(a=>...) */
+  FX.people=FX.people||[];
+  /* with the backend on, nothing without a server id is ever on screen (seed rows, until a mode answers and drops them) */
+  FX.hide.push(a=>REAL()&&!a.sid);
   /* a.hostVerified: the badge and the 只看已驗證 filter read it. Server rows map host.verified; while the seed is on screen
      three demo hosts count as verified (象山 安安, 爵士 蔡沐恩, 溯溪 江志遠) */
   [3,8,9].forEach(id=>{const a=byId(id);if(a&&!a.sid)a.hostVerified=true;});
@@ -5127,11 +5332,14 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   /* maps a server row, stores it in acts (same object if it is there already) and syncs joined/pending/waitl; caller re-renders */
   const fromServer=r=>put(map(r));
 
-  /* a mode's first page replaces its seed rows and older server rows; later pages only add */
+  const drop=a=>{const i=acts.indexOf(a);if(i>=0)acts.splice(i,1);[joined,pending,waitl,saved].forEach(s=>s.delete(a.id));};
+  /* the seed rows of one mode (anything without a server id) go: when the server answered, or when it could not be reached */
+  const dropSeed=mode=>{const date=mode==='date';for(let i=acts.length-1;i>=0;i--){const a=acts[i];if(!!a.dating===date&&!a.sid)drop(a);}};
+  /* a mode's first page replaces everything that mode had (seed rows and older server rows); later pages only add */
   function swap(mode,rows,first,sv){
-    const date=mode==='date',list=rows.map(map),ids=new Set(list.map(a=>a.id)),seedIds=seedMap().ids;
-    if(first)for(let i=acts.length-1;i>=0;i--){const a=acts[i];
-      if(!!a.dating===date&&(a.sid||seedIds.has(a.id))&&!ids.has(a.id)){acts.splice(i,1);[joined,pending,waitl,saved].forEach(s=>s.delete(a.id));}}
+    const date=mode==='date',list=rows.map(map),ids=new Set(list.map(a=>a.id));
+    seedMap();
+    if(first)for(let i=acts.length-1;i>=0;i--){const a=acts[i];if(!!a.dating===date&&!ids.has(a.id))drop(a);}
     list.forEach(a=>{put(a);if(sv){saved.delete(a.id);if(sv.has(a.sid))saved.add(a.id);}});
   }
   async function savedSids(){
@@ -5141,19 +5349,25 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
   async function loadMode(mode,g,sv){
     let cursor=null,first=true;
+    busy[mode]=true;
     try{
       for(let p=0;p<MAX_PAGES;p++){
         const d=await A.req(`/events?mode=${mode}&limit=${PAGE}${cursor?'&cursor='+encodeURIComponent(cursor):''}`);
         if(g!==gen)return false;
-        swap(mode,d.events||[],first,sv);first=false;ok[mode]=true;failed[mode]=false;paint();
+        swap(mode,d.events||[],first,sv);first=false;ok[mode]=true;failed[mode]=false;if(!d.next_cursor)busy[mode]=false;paint();
         cursor=d.next_cursor;if(!cursor)break;
       }
       return true;
-    }catch(e){if(g===gen&&first){failed[mode]=true;paint();}return false;}
+    }catch(e){
+      /* could not be reached: no sample data stands in. Server rows from an earlier answer stay (they are real) */
+      if(g===gen&&first){failed[mode]=true;dropSeed(mode);busy[mode]=false;paint();}
+      return false;
+    }finally{if(g===gen)busy[mode]=false;}
   }
   async function load(){
     if(!A.enabled)return false;
     const g=++gen;seedMap();loadedTok=A.token;
+    busy.group=busy.date=true;failed.group=failed.date=false;paint();
     /* signed out: the seed's saved marks go; signed in: they come from the server. A failed read leaves saved alone */
     let sv;if(A.token){try{sv=await savedSids();}catch(e){sv=undefined;}}else sv=new Set();
     if(g!==gen)return false;
@@ -5161,10 +5375,38 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     return r.every(Boolean);
   }
   function paint(){refresh();note();}
+  /* the home while the backend is on: one quiet line when a reload failed, and the empty state says 載入中 / 連不上 + 重試
+     instead of 今天沒有活動. The wall and the list are rebuilt by renderHome, so this runs after every render */
+  const RETRY='<button type="button" class="lnk2" data-se-retry>重試</button>';
   function note(){
-    const top=$('#s-home .ptop');if(!top)return;const el=top.querySelector('.se-note'),m=curMode(),on=A.enabled&&failed[m]&&!ok[m];
-    if(!on){if(el)el.remove();return;}
-    if(!el)top.insertAdjacentHTML('beforeend','<p class="se-note" role="status">連不上伺服器，先顯示示意資料</p>');
+    const top=$('#s-home .ptop');if(!top)return;const el=top.querySelector('.se-note'),m=curMode();
+    const state=!A.enabled?'':failed[m]?'fail':busy[m]||!ok[m]?'load':'';
+    if(state!=='fail'){if(el)el.remove();}
+    else{const h=`<p class="se-note" role="status">連不上伺服器${ok[m]?'，顯示的是上次的資料 ':' '}<button type="button" class="lnk2" data-se-retry style="pointer-events:auto">重試</button></p>`;if(el)el.outerHTML=h;else top.insertAdjacentHTML('beforeend',h);}
+    if(!state||ok[m])return;
+    const emp=$('#homeBody .pwall .pempty'),lst=$('#homeBody .plist .empty');
+    const big=state==='fail'?'連不上伺服器':'正在載入活動…';
+    if(emp){emp.dataset.se=state;emp.innerHTML=`<b>${big}</b><div class="pe-acts">${state==='fail'?RETRY:''}</div>`;}
+    if(lst){lst.dataset.se=state;lst.innerHTML=`<b>${big}</b>${state==='fail'?'請檢查網路後再試。'+RETRY:''}`;}
+  }
+  FX.click.push((b,d)=>{if(d.seRetry===undefined)return false;load();return true;});   /* load() bumps gen: a stuck one is dropped */
+
+  /* ----- participants: a.people for the open event (contract for other modules) -----
+     GET /events/:id/participants needs a session and answers 403 unless you host or joined; then a.people is []. */
+  const peopleAt=new Map();
+  async function loadPeople(a,force){
+    if(!a||!a.sid||!A.enabled)return a&&a.people||[];
+    const sid=a.sid,at=peopleAt.get(sid);
+    if(!force&&at&&Date.now()-at<6e4)return a.people||[];
+    let list=[];
+    /* signed out: nothing to ask (the route needs a session) and nothing cached, so a sign-in fetches at once */
+    if(A.token){peopleAt.set(sid,Date.now());
+      try{const d=await A.req(`/events/${encodeURIComponent(sid)}/participants`);
+        list=(d&&d.participants||[]).map(r=>({id:r.user_id,name:r.display_name||'？',avatar:r.avatar_key||null,role:r.role,status:r.status||'joined',plus:+r.plus_count||0}));}
+      catch(e){list=[];if(e&&e.status===0)peopleAt.delete(sid);}}
+    const cur=byId(a.id);if(!cur||cur.sid!==sid)return list;
+    cur.people=list;(FX.people||[]).forEach(f=>{try{f(cur);}catch(e){console.error(e);}});
+    return list;
   }
 
   function setComments(a,list){
@@ -5174,9 +5416,10 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     list.forEach((c,i)=>{if(c.liked_by_me)cmLiked.add(a.id+'-'+i);});
   }
   /* detail + comments for one event; a 404 means it is gone for this viewer (cancelled, blocked, women only) */
-  async function refreshOne(localId){
+  async function refreshOne(localId,force){
     const a0=byId(+localId);if(!a0||!a0.sid||!A.enabled)return null;
     const sid=a0.sid,p=encodeURIComponent(sid);
+    loadPeople(a0,force).catch(()=>{});   /* alongside the detail, not after it */
     try{
       const [d,c]=await Promise.all([A.req('/events/'+p),A.req(`/events/${p}/comments?limit=50`).catch(()=>null)]);
       const a=fromServer(d);if(c)setComments(a,c.comments||[]);
@@ -5201,7 +5444,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     try{const sd=posterSeedDates;posterSeedDates=function(){if(ok.date)return;return sd.apply(this,arguments);};}catch(e){}
     if(A.enabled)load();
   });
-  window.TG_SYNC_EVENTS={load,refreshOne,fromServer,map,feeText,kmAng,get state(){return {ok:Object.assign({},ok),failed:Object.assign({},failed)};}};
+  window.TG_SYNC_EVENTS={load,refreshOne,loadPeople,fromServer,map,feeText,kmAng,get state(){return {ok:Object.assign({},ok),failed:Object.assign({},failed),busy:Object.assign({},busy)};}};
 })();
 
 /* ===== feat/sync_social ===== */
@@ -5223,7 +5466,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   async function loadProfile(g){
     const u=A.user,[me,s]=await Promise.all([u&&'birth_date' in u&&'created_at' in u?u:A.req('/me'),A.req('/me/stats')]);
     if(g!==gen)return;
-    prof.me=me;prof.stats=s;if(A.user)Object.assign(A.user,me);
+    prof.me=me;prof.stats=s;if(A.user)Object.assign(A.user,me);setMe(A.user);
     ME.host=s.hosted;ME.join=s.joined;ME.att=s.attendance_rate==null?'—':Math.round(s.attendance_rate*100);
     paint();
   }
@@ -5515,13 +5758,30 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     Object.keys(readT).forEach(k=>{clearTimeout(readT[k].t);delete readT[k];});
     paint();
   }
-  A.on('auth',u=>{if(u&&u.id===uid)return;if(uid)stop();if(u&&A.enabled)start(u);});
+  /* contract for other modules: window.TG_ME = {id, name} while signed in, null when not (name follows /me once it answers) */
+  const setMe=u=>{window.TG_ME=u&&u.id?{id:u.id,name:u.display_name||''}:null;};
+  A.on('auth',u=>{setMe(u);if(u&&u.id===uid)return;if(uid)stop();if(u&&A.enabled)start(u);});
+  setMe(A.user);
+  /* backend on: the demo rooms and notices (ui.js seeds them at load) must not flash before GET /chat and /notifications answer */
+  function clearSeed(){
+    if(!A.enabled)return;
+    Object.keys(chats).forEach(id=>{if(!chats[id].srv)delete chats[id];});
+    for(let i=NOTICES.length-1;i>=0;i--)if(!NOTICES[i].nid)NOTICES.splice(i,1);
+    if(!N0)N0=[];
+    paint();
+  }
+  FX.boot.push(clearSeed);
 
-  window.TG_SS={sock:S,start,stop,tick,loadNotices:()=>loadNotices(gen),get state(){return {uid,gen,prof,rooms,nt};},KMAP,SCAM,NUDGE,nudge};
+  window.TG_SS={sock:S,start,stop,tick,clearSeed,loadNotices:()=>loadNotices(gen),get state(){return {uid,gen,prof,rooms,nt};},KMAP,SCAM,NUDGE,nudge};
 })();
 
 /* ===== feat/trust ===== */
-/* ===== feat/trust: 團主信用卡片 — per-host reputation on the event page, full review sheet, join-sheet summary, rating updates ===== */
+/* ===== feat/trust: 團主信用卡片 — per-host reputation on the event page, full review sheet, join-sheet summary, rating updates =====
+   Two data paths, picked at render time by real() (TG_API.enabled):
+   - seed (jsdom / backend off): seed(name) invents numbers from the demo rows, as before.
+   - real: the card reads what feat/sync_events put on the row (a.hr avg stars, a.hrNew "fewer than 3 reviews", a.att attendance %,
+     a.hostId), then GET /users/:hostId/reputation fills hosted / review_count / would_rejoin; the review list is paged on demand
+     from GET /users/:hostId/reviews?cursor=. Nothing is invented: unknown numbers show as —, no reviews shows 還沒有評價. */
 (()=>{
   const ME_NAME='安安',MIN_RV=3;
   const REPLY=[5,10,15,20,30,60];
@@ -5529,9 +5789,17 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
     '行程順':['流程排得很順，不會乾等','路線安排得剛好'],'氣氛好':['大家很快就聊開了','氣氛很輕鬆，新手不尷尬'],'會再跟':['下次還想跟','已經追蹤，等下一團']};
   const REP={};
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const real=()=>!!(window.TG_API&&window.TG_API.enabled);
+  const A=()=>window.TG_API;
+  const enc=encodeURIComponent;
+  const mins=t=>Math.max(0,Math.round((Date.now()-t)/6e4));
+  /* who is signed in: window.TG_ME {id,name} (login contract), else TG_API.user */
+  const me=()=>{const m=window.TG_ME;if(m&&m.id)return {id:m.id,name:m.name||''};const u=A()&&A().user;return u&&u.id?{id:u.id,name:u.display_name||''}:null;};
+  const canFetch=()=>real()&&!!A().token;
   /* verified host: a.hostVerified comes from the server (host.verified, set by feat/sync_events); seed hosts of 3, 8, 9 show it for the demo */
   const SEED_VER=[3,8,9];SEED_VER.forEach(id=>{const a=byId(id);if(a&&a.hostVerified==null)a.hostVerified=true;});
   const hv=a=>!!a&&(a.hostVerified!=null?!!a.hostVerified:a.sid?!!a.verified:SEED_VER.includes(a.id));
+  const VER='<em class="tr-ver" title="已通過真人驗證">✓ 已驗證</em>';
   /* star counts whose average rounds to hr (n>=12 keeps the rounding exact) */
   const histFor=(hr,n)=>{const total=Math.round(hr*n);let def=5*n-total;const h={5:0,4:0,3:0,2:0,1:0};
     h[3]=Math.floor(def/6);def-=2*h[3];h[4]=def;h[5]=n-h[4]-h[3];return h;};
@@ -5550,6 +5818,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       return {u:PEOPLE[(id*5+i*7)%PEOPLE.length],star:i===2&&h[4]?4:5,txt:RVTXT[t1][(id+i)%2],tags:tg,ago:[60*26,60*24*4,60*24*11][i]};});
     return {name,h,tags,att:a.att,hosted:6+id*3,reply:REPLY[id%REPLY.length],ver:hv(a),since:2023+(id%3),reviews};
   }
+  /* seed only: never called while the backend is on, so no invented reviewer or number can reach the screen */
   const rep=name=>REP[name]||(REP[name]=seed(name));
   const cnt=r=>[5,4,3,2,1].reduce((s,k)=>s+r.h[k],0);
   const avg=r=>{const n=cnt(r);return n?[5,4,3,2,1].reduce((s,k)=>s+k*r.h[k],0)/n:0;};
@@ -5561,11 +5830,59 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   const replyTxt=m=>m<60?`${m} 分鐘`:`${Math.round(m/60)} 小時`;
   const stars=s=>'★'.repeat(s)+'☆'.repeat(5-s);
   /* with the event in hand the badge follows that row (a server host can be verified today and not in the cached seed) */
-  const verB=(r,a)=>{if(a)r.ver=hv(a);return r.ver?'<em class="tr-ver" title="已通過真人驗證">✓ 已驗證</em>':'';};
+  const verB=(r,a)=>{if(a)r.ver=hv(a);return r.ver?VER:'';};
 
-  const rvHTML=v=>`<div class="tr-rv" data-tr-rv><span class="av">${esc(v.u)}</span><div><p><b>${v.me?'你':esc(v.u)+'○○'}</b><span class="tr-st" aria-label="${v.star} 顆星">${stars(v.star)}</span></p>
-    ${v.txt?`<p class="tr-tx">${esc(v.txt)}</p>`:''}${v.tags.length?`<p class="tr-rtg">${v.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</p>`:''}<small>${agoText(v.ago)}</small></div></div>`;
+  /* a review line; star 0 = hidden by the server (fewer than 3 reviews), so no stars are drawn */
+  const rvHTML=v=>`<div class="tr-rv" data-tr-rv><span class="av">${esc(v.u)}</span><div><p><b>${v.me?'你':esc(v.u)+'○○'}</b>${v.star?`<span class="tr-st" aria-label="${v.star} 顆星">${stars(v.star)}</span>`:''}</p>
+    ${v.txt?`<p class="tr-tx">${esc(v.txt)}</p>`:''}${v.tags.length?`<p class="tr-rtg">${v.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</p>`:''}<small>${agoText(v.ago)}${v.ev?` · ${esc(v.ev)}`:''}</small></div></div>`;
   const barHTML=(r,t)=>{const p=pctOf(r,t);return `<div class="tr-bar" data-tr-tag="${esc(t)}"><span>${esc(t)}</span><i><s style="width:${p}%"></s></i><em class="tnum">${p}%</em></div>`;};
+
+  /* ----- real mode: reputation per user id, reviews paged on demand ----- */
+  const RR={};   /* uid -> {rep, err, at, p}: GET /users/:id/reputation, one request per host, retried 30 s after a failure */
+  const RV={};   /* uid -> {items, next, loaded, loading, err}: GET /users/:id/reviews?cursor= */
+  const repReal=uid=>(uid&&RR[uid]&&RR[uid].rep)||null;
+  const rvState=uid=>RV[uid]||(RV[uid]={items:[],next:null,loaded:false,loading:false,err:false});
+  const fromSrv=r=>({id:r.id,u:r.reviewer_name||'？',star:r.stars==null?0:+r.stars,txt:r.comment||'',tags:Array.isArray(r.tags)?r.tags:[],ago:mins(r.created_at||Date.now()),ev:r.event_title||''});
+  /* the screen that shows this person gets painted again once the numbers arrive */
+  function repaint(uid){
+    const a=ovOpen('#o-detail')?byId(curDetail):null;
+    if(a&&a.hostId===uid)refresh();
+    else{const m=me();if(m&&m.id===uid&&st.tab==='me'&&!ovStack.length)refresh();}
+    if(curUid===uid&&openSheet&&openSheet.id==='sh-tr')renderAll();
+  }
+  function loadRep(uid){
+    if(!uid||!canFetch())return;const s=RR[uid]||(RR[uid]={rep:null,err:false,at:0,p:null});
+    if(s.rep||s.p||(s.err&&Date.now()-s.at<3e4))return;
+    s.p=A().req(`/users/${enc(uid)}/reputation`).then(r=>{s.rep=r&&typeof r==='object'?r:null;s.err=!s.rep;},()=>{s.err=true;}).then(()=>{s.at=Date.now();s.p=null;repaint(uid);});
+  }
+  function loadReviews(uid,more){
+    if(!uid||!canFetch())return;const s=rvState(uid);
+    if(s.loading||(more?!s.next:s.loaded))return;
+    s.loading=true;s.err=false;
+    A().req(`/users/${enc(uid)}/reviews?limit=20${more?'&cursor='+enc(s.next):''}`).then(r=>{
+      const items=(r&&r.items||[]).map(fromSrv);if(more)s.items.push(...items);else s.items=items;s.next=r&&r.next_cursor||null;s.loaded=true;
+    },()=>{s.err=true;}).then(()=>{s.loading=false;if(curUid===uid&&openSheet&&openSheet.id==='sh-tr')renderAll();});
+  }
+  /* a fresh viewer sees a different set (blocks hide reviewers), so the caches go with the session */
+  if(window.TG_API&&TG_API.on)TG_API.on('auth',()=>{Object.keys(RR).forEach(k=>delete RR[k]);Object.keys(RV).forEach(k=>delete RV[k]);});
+  const attTxt=(r,a)=>r?(r.attendance_rate!=null?Math.round(100*r.attendance_rate)+'%':'—'):(a&&a.att!=null?a.att+'%':'—');
+  const avgOf=(r,a)=>+(r&&r.avg_stars!=null?r.avg_stars:a&&a.hr)||0;
+  const newOf=(r,a)=>r?!!r.is_new:!!(a&&a.hrNew);
+
+  function cardReal(a){
+    const uid=a.hostId||null,r=repReal(uid),fol=follows.has(a.host);
+    loadRep(uid);
+    const isN=newOf(r,a),n=r?r.review_count:null;
+    const score=isN?`<p class="tr-new" data-tr-new><b>新團主 · 評價還不多</b><small>${n?`目前 ${n} 則評價，`:''}多看看活動說明和留言</small></p>`
+      :`<div class="tr-score"><b class="tnum" data-tr-score>★ ${avgOf(r,a).toFixed(1)}</b>${n!=null?`<small><span class="tnum" data-tr-n>${n}</span> 則評價</small>`:''}</div>`;
+    return `<div class="sh rv"><h2>${a.mine?'你的團主信用':'團主'}</h2></div>
+    <div class="tr-card rv" data-tr-card="${esc(a.host)}" data-tr-real="${esc(uid||'')}">
+      <div class="tr-hd"><span class="av">${esc(a.host[0])}</span><span class="tr-nm"><b>${esc(a.host)}${hv(a)?VER:''}</b>${r&&r.hosted!=null?`<small>揪過 ${r.hosted} 團</small>`:''}</span>${a.mine?'':`<button class="fol ${fol?'on':''}" data-follow="${esc(a.host)}">${fol?'追蹤中':'追蹤'}</button>`}</div>
+      ${score}
+      <div class="tr-stats"><div><b class="tnum" data-tr-att>${attTxt(r,a)}</b><small>準時出席</small></div><div><b class="tnum" data-tr-hosted>${r&&r.hosted!=null?r.hosted:'—'}</b><small>揪過幾團</small></div><div><b class="tnum" data-tr-rec>${r&&r.would_rejoin!=null?r.would_rejoin:'—'}</b><small>想再跟</small></div></div>
+      ${uid&&(n==null||n>0)?`<button class="tr-all" data-tr-all="${esc(a.host)}" data-tr-uid="${esc(uid)}">看全部評價</button>`:''}
+    </div>`;
+  }
 
   /* event page: replaces the core 團主 section */
   function card(a){
@@ -5583,12 +5900,28 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       ${n?`<button class="tr-all" data-tr-all="${esc(a.host)}">看全部評價</button>`:''}
     </div>`;
   }
-  FX.host.push(a=>card(a));
+  FX.host.push(a=>real()?cardReal(a):card(a));
 
   /* full review sheet */
   $('#sh-filter').insertAdjacentHTML('beforebegin','<section class="sheet short form" id="sh-tr" role="dialog" aria-modal="true" aria-label="團主評價"><div class="grab"></div><div class="sheet-in" id="trIn"></div></section>');
-  let cur=null;
+  let cur=null,curUid=null;
+  function renderAllReal(){
+    const uid=curUid,r=repReal(uid),s=rvState(uid),a=uid?acts.find(x=>x.hostId===uid):null,m=me(),mine=!!(m&&uid&&m.id===uid),name=cur||(a&&a.host)||'';
+    loadRep(uid);loadReviews(uid);
+    const isN=newOf(r,a),n=r?r.review_count:null;
+    const sum=isN?'新團主 · 評價還不多':`★ ${avgOf(r,a).toFixed(1)}${n!=null?` · ${n} 則評價`:''}`;
+    const list=!uid||!canFetch()?'<p class="empty" data-tr-empty>登入後可以看評價。</p>'
+      :s.err&&!s.items.length?'<p class="empty" data-tr-err>評價暫時讀不到，請稍後再試。</p>'
+      :!s.loaded?'<p class="empty" data-tr-loading>載入中…</p>'
+      :s.items.length?s.items.map(rvHTML).join(''):'<p class="empty" data-tr-empty>還沒有評價。</p>';
+    $('#trIn').innerHTML=`<div class="shh"><span></span><h2>${mine?'你的團主評價':'團主評價'}</h2><button class="r" data-close>完成</button></div>
+      <div class="tr-sum"><span class="av">${esc(name[0]||'？')}</span><span class="tr-nm"><b>${esc(name)}${a&&hv(a)?VER:''}</b><small>${sum}${r&&r.would_rejoin?` · ${r.would_rejoin} 人想再跟`:''}</small></span></div>
+      <div class="glbl2">最近評價${n!=null?` <span class="opt">${n} 則</span>`:''}</div><div class="group tr-list" data-tr-list="${esc(uid||'')}">${list}</div>
+      ${s.next?`<button class="tr-all" data-tr-more="${esc(uid)}" ${s.loading?'disabled':''}>${s.loading?'載入中…':'載入更多'}</button>`:''}
+      <p class="hint pad">只有實際參加、並在活動結束後回饋的人能評價。出席率只計「沒到」，請假不扣分。</p>`;
+  }
   function renderAll(){
+    if(real())return renderAllReal();
     const r=rep(cur),n=cnt(r),mx=Math.max(1,...[5,4,3,2,1].map(k=>r.h[k]));
     $('#trIn').innerHTML=`<div class="shh"><span></span><h2>${cur===ME_NAME?'你的團主評價':'團主評價'}</h2><button class="r" data-close>完成</button></div>
       <div class="tr-sum"><span class="av">${esc(cur[0])}</span><span class="tr-nm"><b>${esc(cur)}${verB(r)}</b><small>${isNew(r)?'新團主 · 評價還不多':`★ ${avg(r).toFixed(1)} · ${n} 則評價`}${recN(r)?` · ${recN(r)} 人想再跟`:''}</small></span></div>
@@ -5597,36 +5930,46 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
       <div class="glbl2">最近評價 <span class="opt">${r.reviews.length} 則</span></div><div class="group tr-list">${r.reviews.map(rvHTML).join('')||'<p class="empty">還沒有文字評價。</p>'}</div>
       <p class="hint pad">只有實際參加、並在活動結束後回饋的人能評價。出席率只計「沒到」，請假不扣分。</p>`;
   }
-  function openAll(name){cur=name;renderAll();showSheet('#sh-tr');}
+  function openAll(name,uid){cur=name;curUid=uid||null;renderAll();showSheet('#sh-tr');}
 
   /* join sheet: one subtle line so people decide with the host in view */
   FX.joinForm.push((a,s)=>{
     if(a.mine||(s!=='join'&&s!=='apply'))return '';
-    const r=rep(a.host);
-    const bits=isNew(r)?['新團主',`${cnt(r)} 則評價`]:[`★ ${avg(r).toFixed(1)}`,r.att!=null?`出席 ${r.att}%`:'',recN(r)?`${recN(r)} 人想再跟`:''];
+    let bits;
+    if(real()){const r=repReal(a.hostId);const n=r?r.review_count:null;
+      bits=newOf(r,a)?['新團主',n!=null?`${n} 則評價`:'']:[`★ ${avgOf(r,a).toFixed(1)}`,a.att!=null?`出席 ${a.att}%`:'',r&&r.would_rejoin?`${r.would_rejoin} 人想再跟`:''];}
+    else{const r=rep(a.host);
+      bits=isNew(r)?['新團主',`${cnt(r)} 則評價`]:[`★ ${avg(r).toFixed(1)}`,r.att!=null?`出席 ${r.att}%`:'',recN(r)?`${recN(r)} 人想再跟`:''];}
     return `<p class="tr-js" data-tr-js><span class="av">${esc(a.host[0])}</span><span>團主 ${esc(a.host)}${hv(a)?' ✓':''}</span><em class="tnum">${bits.filter(Boolean).join(' · ')}</em></p>`;
   });
 
-  /* me: your own host summary */
+  /* me: your own host summary. Real: GET /users/<me>/reputation; signed out or no record (404) -> nothing */
   FX.meMid.push(()=>{
+    if(real()){
+      const m=me();if(!m||!canFetch())return '';
+      loadRep(m.id);const r=repReal(m.id);if(!r)return '';
+      const nm=m.name||'你',att=r.attendance_rate!=null?`出席 ${Math.round(100*r.attendance_rate)}%`:'';
+      return `<div class="sh rv"><h2>你的團主評價</h2></div><div class="group rv"><button class="cell" data-tr-all="${esc(nm)}" data-tr-uid="${esc(m.id)}" data-tr-me><span class="av">${esc(nm[0])}</span><span style="min-width:0"><b>${r.is_new?'新團主 · 評價還不多':`★ ${avgOf(r).toFixed(1)} · ${r.review_count||0} 則評價`}</b><small>${[att,`揪過 ${r.hosted||0} 團`,r.would_rejoin?`${r.would_rejoin} 人想再跟`:''].filter(Boolean).join(' · ')}</small></span><span class="mini">看評價</span></button></div>`;
+    }
     const r=rep(ME_NAME),n=cnt(r);
     return `<div class="sh rv"><h2>你的團主評價</h2></div><div class="group rv"><button class="cell" data-tr-all="${ME_NAME}" data-tr-me><span class="av">安</span><span style="min-width:0"><b>${isNew(r)?'新團主 · 評價還不多':`★ ${avg(r).toFixed(1)} · ${n} 則評價`}</b><small>出席 ${r.att}% · 揪過 ${hosted(r)} 團${recN(r)?` · ${recN(r)} 人想再跟`:''}</small></span><span class="mini">看評價</span></button></div>`;
   });
 
   FX.click.push((b,d)=>{
+    if(d.trMore!==undefined){loadReviews(d.trMore,true);renderAll();return true;}
     if(d.trAll===undefined)return false;
-    openAll(d.trAll);return true;
+    openAll(d.trAll,d.trUid);return true;
   });
 
-  /* a guest rating from a PAST event feeds that host's numbers */
+  /* a guest rating from a PAST event feeds that host's numbers (seed only: the server keeps the real tally) */
   FX.rated.push((p,v)=>{
-    if(p.mine||v.at!=='yes'||!v.star)return;
+    if(real()||p.mine||v.at!=='yes'||!v.star)return;
     const r=rep(p.host),tg=RVTAG.filter(t=>v.tags.has(t));
     r.h[v.star]++;tg.forEach(t=>r.tags[t]=(r.tags[t]||0)+1);
     r.reviews.unshift({u:'安',me:true,star:v.star,txt:'',tags:tg,ago:0});
   });
 
-  window.TG_TR={REP,rep,cnt,avg,recN,hosted,isNew,pctOf,topTags,openAll,histFor,hv};
+  window.TG_TR={REP,rep,cnt,avg,recN,hosted,isNew,pctOf,topTags,openAll,histFor,hv,real,repReal,loadRep,loadReviews,rvState,RR,RV};
 })();
 
 /* ===== feat/weather ===== */
@@ -5635,6 +5978,9 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
    host decisions (照常／延期／取消) via confirm sheet, notices + a system line in the group chat,
    and quick-pick rain rules in the composer. */
 (()=>{
+  /* real backend: the forecast below is made up, so the card, the demo notice and the pretend host answer stay off until a
+     weather API is wired. REAL is read at load (after feat/00api) for the seed, real() when drawing so tests can flip it. */
+  const REAL=!!(window.TG_API&&window.TG_API.enabled),real=()=>!!(window.TG_API&&window.TG_API.enabled);
   const HI=60;   /* rain probability (%) from which the host has to decide */
   const COND={晴:'sun',多雲:'cloud',陣雨:'rain',雷雨:'storm'};
   const W_SVG={
@@ -5679,7 +6025,7 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   }
 
   function card(a){
-    if(!isWx(a))return '';
+    if(real()||!isWx(a))return '';
     const f=forecast(a),s=status(a),o=optsOf(a),rule=o.rain||'團主沒有寫雨天備案';
     const canDecide=a.mine&&f.hi&&s!=='cancelled'&&a.wxState!=='go';
     const note=s==='cancelled'?(a.mine?'已通知所有成員，群組會保留到活動原定時間。':`團主 ${esc(a.host)} 因天候取消了這場活動。`)
@@ -5754,12 +6100,12 @@ setTimeout(()=>{try{pglBake(()=>{pglUpgrade(document);drawRadar();},[featured().
   /* ----- hooks ----- */
   NK.wx='天氣';
   NIC.wx=sv(W_SVG.rain);
-  NOTICES.unshift({k:'wx',txt:'「清晨走象山」降雨機率 80%，依規則可能取消，等你決定',ago:'10 分鐘前',un:true,id:3});
+  if(!REAL)NOTICES.unshift({k:'wx',txt:'「清晨走象山」降雨機率 80%，依規則可能取消，等你決定',ago:'10 分鐘前',un:true,id:3});
 
   FX.detailTop.push(a=>card(a));
   FX.hide.push(a=>a.wxState==='cancelled');
   FX.state.push(a=>a.wxState==='cancelled'?'cancelled':'');
-  FX.joined.push((a,s)=>{if(!a.mine&&isWx(a)&&forecast(a).hi&&!a.wxState)setTimeout(()=>hostLater(a.id,6),MEMBER_MS);});
+  FX.joined.push((a,s)=>{if(!real()&&!a.mine&&isWx(a)&&forecast(a).hi&&!a.wxState)setTimeout(()=>hostLater(a.id,6),MEMBER_MS);});
   FX.click.push((b,d)=>{
     if(d.wxAct){const [id,act]=d.wxAct.split(':');openConfirm(+id,act);return true;}
     if(d.wxPick){if(cf){cf.pick=d.wxPick;renderConfirm();}return true;}
@@ -6273,7 +6619,7 @@ Object.assign(POSTER_ART,{
   306:{t:/爵士/,c:['#00586B','#FFFFFF'],a:()=>`<svg viewBox="0 0 100 80" style="${pPos(0,54,`width:${PU(100)};height:${PU(80)}`)}" fill="none" stroke-width="5"><path d="M0 28q12-22 25 0t25 0t25 0t25 0" stroke="#FF4F8B"/><path d="M0 52q12-22 25 0t25 0t25 0t25 0" stroke="#2BD9E8"/></svg><div class="pa" style="${pPos(4,0)}">爵士</div>`}
 });
 function posterSeedDates(){
-  if(acts.some(a=>a.dating))return;
+  if(acts.some(a=>a.dating)||window.TG_API&&TG_API.enabled)return;   /* real backend: no demo dates */
   DATE_SEED.forEach(s=>{const t=s.start();acts.push(Object.assign({},s,{start:t,end:t+90*6e4,dating:true,hr:4.8,att:96,cap:2,n:1,minN:2,addr:s.place+'，對方同意後才公布確切地點',ago:40,cm:[],opts:{approve:true,verified:true,venue:'公開場所',level:'不限',age:'18+',wait:false}}));});
 }
 FX.hide.push(a=>posterMode==='date'?!a.dating:!!a.dating);
@@ -6355,7 +6701,7 @@ Object.assign(POSTER_ART,{
   314:{t:/燒肉/,c:['#111111','#FFFFFF'],a:()=>{let g='';for(let i=0;i<7;i++)g+=`<div style="left:${PU(4)};top:${PU(52+i*12)};width:${PU(96)};height:${PU(3)};background:#FFF"></div>`;[[12,58,0],[48,76,8],[20,100,-6]].forEach(([x,y,a])=>{g+=`<div style="${pPos(x,y,`width:${PU(40)};height:${PU(18)};border-radius:${PU(4)};background:#FF4F3A;transform:rotate(${a}deg)`)}"></div>`;});return g+`<div class="pa" style="${pPos(4,0)}">燒肉</div>`;}}
 });
 function posterSeedMeals(){
-  if(acts.some(a=>a.id===311))return;
+  if(acts.some(a=>a.id===311)||window.TG_API&&TG_API.enabled)return;   /* real backend: no demo meals */
   MEAL_SEED.forEach(s=>{const t=s.start();acts.push(Object.assign({},s,{cat:'food',start:t,end:t+120*6e4,hr:4.8,att:96,minN:2,addr:s.place+'，加入後公布店名',ago:50,cm:[],opts:{venue:'室內',wait:true}}));});
   const w=byId(4);if(w&&!w.pact)w.pact={ride:'各自到現場',budget:'$300–800',drink:'微醺',avoid:[],length:'半日 2–3 小時'};
 }

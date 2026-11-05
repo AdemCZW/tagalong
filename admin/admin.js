@@ -25,7 +25,7 @@ const L={
   safety:{asked:'已詢問，未回覆',snoozed:'延後回覆',escalated:'多次未回覆',contact_notified:'已通知緊急聯絡人',help:'求救',safe:'已報平安'},
   pstatus:{joined:'已加入',pending:'待同意',waitlisted:'候補',offered:'遞補待確認',rejected:'未通過',left:'已退出',removed:'被移除'},
   change:{cancel:'取消',postpone:'延期',proceed:'照常舉行',edit:'修改',auto_cancel:'未成團自動取消'},
-  action:{suspend:'停權',restore:'恢復帳號',takedown:'下架活動',view_contact:'查看緊急聯絡人'},
+  action:{suspend:'停權',restore:'恢復帳號',verify:'標記實名',unverify:'取消實名',takedown:'下架活動',view_contact:'查看緊急聯絡人'},
   gender:{f:'女',m:'男',x:'其他'},
   risk:{low:'低',mid:'中',high:'高'}
 };
@@ -195,6 +195,10 @@ async function user(v,id,ok){
   if(u.status==='active')danger(act,{title:'停權',hint:'停權後這個人會被登出所有裝置，也不能再登入。',verb:'停權',ask:`確定要停權「${nm}」嗎？`,path:path+'suspend',done:()=>user(v,id,`已停權「${nm}」`)});
   else if(u.status==='suspended')danger(act,{title:'恢復帳號',hint:'恢復後這個人可以重新登入。',verb:'恢復',tone:'',ask:`確定要恢復「${nm}」的帳號嗎？`,path:path+'restore',done:()=>user(v,id,`已恢復「${nm}」`)});
   else if(u.status==='deleted')put(act,h`<p class="msg">已刪除的帳號不能恢復。</p>`);
+  /* 實名是手動的：看過證件或視訊後才標記。約會模式與限實名的團都看這個 */
+  if(u.status!=='deleted'){const vact=document.createElement('div');vact.className='act';act.after(vact);
+    if(!u.verified)danger(vact,{title:'標記實名',hint:'看過證件或視訊確認是本人後才標記。標記後可以發起約會、參加限實名的團。',verb:'標記實名',tone:'',ask:`確定要把「${nm}」標記為已實名嗎？`,path:path+'verify',done:()=>user(v,id,`已把「${nm}」標記為實名`)});
+    else danger(vact,{title:'取消實名',hint:'取消後這個人不能再發起約會或參加限實名的團。',verb:'取消實名',ask:`確定要取消「${nm}」的實名嗎？`,path:path+'unverify',done:()=>user(v,id,`已取消「${nm}」的實名`)});}
 }
 
 async function event(v,id,ok){

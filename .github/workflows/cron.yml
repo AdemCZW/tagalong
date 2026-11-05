@@ -1,0 +1,21 @@
+# 代替 Cloudflare Cron Trigger（帳號免費方案的 5 個名額已滿）：每 5 分鐘打後端的排程端點。
+# 要先在這個 repo 設定 secret：gh secret set CRON_SECRET --repo AdemCZW/tagalong（值要和 wrangler secret put CRON_SECRET --env staging 一樣）。
+# GitHub 的排程在尖峰時段可能延遲幾分鐘到十幾分鐘；後端每一步都可重複執行，晚一點跑不會出錯。
+name: cron
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: POST /internal/cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET not set"; exit 1; fi
+          code=$(curl -s -o /tmp/out -w '%{http_code}' -X POST -H "X-Cron-Secret: $CRON_SECRET" https://tagalong-api-staging.tmac19920626.workers.dev/internal/cron)
+          cat /tmp/out; echo
+          [ "$code" = "200" ]
